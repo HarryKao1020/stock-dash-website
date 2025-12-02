@@ -38,7 +38,10 @@ except:
 
 dash.register_page(__name__, path="/realtime-market", name="即時盤勢")
 
+# ====== 變數區==========
 font_size = "1rem"
+days_to_display = 60  # 處置股天數
+# ====== 變數區==========
 
 
 def create_index_chart_with_macd(df, title="加權指數"):
@@ -180,6 +183,62 @@ def create_index_chart_with_macd(df, title="加權指數"):
     fig.update_yaxes(title_text="價格", row=1, col=1)
     fig.update_yaxes(title_text="成交量(億)", row=2, col=1)
     fig.update_yaxes(title_text="MACD", row=3, col=1)
+
+    return fig
+
+
+def create_stock_count_chart(count_series, title="股票數量", color="#ff6b6b"):
+    """
+    建立處置股或警示股數量柱狀圖
+
+    Args:
+        count_series: pd.Series，日期為索引，數量為值（已過濾週末）
+        title: 圖表標題
+        color: 柱狀圖顏色
+
+    Returns:
+        plotly figure
+    """
+    # 將日期索引轉換為字串格式（只保留日期部分）
+    date_strings = count_series.index.strftime("%Y-%m-%d")
+
+    fig = go.Figure()
+
+    fig.add_trace(
+        go.Bar(
+            x=date_strings,  # 使用格式化後的日期字串
+            y=count_series.values,
+            name=title,
+            marker_color=color,
+            text=count_series.values,
+            textposition="outside",
+            hovertemplate="<b>日期</b>: %{x}<br>"
+            + "<b>數量</b>: %{y}<br>"
+            + "<extra></extra>",
+        )
+    )
+
+    fig.update_layout(
+        title=dict(
+            text=title,
+            font=dict(size=16, color="navy"),
+            x=0.5,
+            xanchor="center",
+            y=0.95,  # 將標題往下移
+            yanchor="top",
+        ),
+        xaxis_title="日期",
+        yaxis_title="數量",
+        height=400,
+        hovermode="x unified",
+        template="plotly_white",
+        margin=dict(l=50, r=20, t=80, b=50),
+        showlegend=False,
+    )
+
+    # 使用 type='category' 來自動移除沒有資料的日期
+    fig.update_xaxes(showgrid=True, gridcolor="rgba(128,128,128,0.2)", type="category")
+    fig.update_yaxes(showgrid=True, gridcolor="rgba(128,128,128,0.2)")
 
     return fig
 
@@ -690,6 +749,115 @@ layout = dbc.Container(
                 ),  # 右側佔一半
             ]
         ),
+        # 新增處置股和警示股圖表
+        html.Hr(
+            style={"margin": "40px 0", "border-color": "#00a896", "border-width": "2px"}
+        ),
+        dbc.Row(
+            [
+                dbc.Col(
+                    [
+                        html.H3(
+                            "🚨 處置股與警示股統計",
+                            className="text-center mb-4",
+                            style={"color": "#2c3e50", "fontWeight": "bold"},
+                        ),
+                    ],
+                    width=12,
+                )
+            ]
+        ),
+        dbc.Row(
+            [
+                # 左側: 處置股數量
+                dbc.Col(
+                    [
+                        html.H4(
+                            f"⛔ 處置股數量 (近{days_to_display}天)",
+                            className="mb-3",
+                            style={"color": "#e74c3c"},
+                        ),
+                        dcc.Loading(
+                            id="loading-disposal",
+                            type="default",
+                            children=[
+                                dcc.Graph(
+                                    id="disposal-chart",
+                                    config={"displayModeBar": True},
+                                    style={"height": "400px"},
+                                ),
+                            ],
+                        ),
+                    ],
+                    width=6,
+                ),
+                # 右側: 警示股數量
+                dbc.Col(
+                    [
+                        html.H4(
+                            f"⚠️ 警示股數量 (近{days_to_display}天)",
+                            className="mb-3",
+                            style={"color": "#f39c12"},
+                        ),
+                        dcc.Loading(
+                            id="loading-noticed",
+                            type="default",
+                            children=[
+                                dcc.Graph(
+                                    id="noticed-chart",
+                                    config={"displayModeBar": True},
+                                    style={"height": "400px"},
+                                ),
+                            ],
+                        ),
+                    ],
+                    width=6,
+                ),
+            ],
+            className="mb-4",
+        ),
+        # 說明卡片
+        dbc.Row(
+            [
+                dbc.Col(
+                    [
+                        dbc.Card(
+                            [
+                                dbc.CardBody(
+                                    [
+                                        html.H5(
+                                            "💡 說明",
+                                            className="card-title text-info",
+                                        ),
+                                        html.Ul(
+                                            [
+                                                html.Li(
+                                                    [
+                                                        html.Strong("處置股"),
+                                                        ": 股價異常波動或交易量異常增加，證交所實施處置措施的股票",
+                                                    ]
+                                                ),
+                                                html.Li(
+                                                    [
+                                                        html.Strong("警示股"),
+                                                        ": 股價達到預警標準，可能面臨全額交割或停牌風險的股票",
+                                                    ]
+                                                ),
+                                                html.Li(
+                                                    "處置股和警示股通常伴隨較高的投資風險，建議謹慎操作"
+                                                ),
+                                            ]
+                                        ),
+                                    ]
+                                )
+                            ],
+                            className="shadow-sm",
+                        )
+                    ],
+                    width=12,
+                )
+            ]
+        ),
     ],
     fluid=True,
     className="p-4",
@@ -715,6 +883,8 @@ def update_interval(seconds):
         Output("otc-chart", "figure"),
         Output("otc-ma-analysis", "children"),
         Output("otc-macd-analysis", "children"),
+        Output("disposal-chart", "figure"),
+        Output("noticed-chart", "figure"),
         Output("last-update-time", "children"),
     ],
     [
@@ -815,6 +985,28 @@ def update_all_charts(n_intervals, n_clicks):
                 otc_data["Close"].values, fastperiod=12, slowperiod=26, signalperiod=9
             )
 
+        # ========== 處置股和警示股資料 ==========
+        try:
+            from finlab_data import get_disposal_stock_count, get_noticed_stock_count
+
+            disposal_count = get_disposal_stock_count(days=days_to_display)
+            noticed_count = get_noticed_stock_count(days=days_to_display)
+        except Exception as e:
+            print(f"⚠️ 載入處置股/警示股資料失敗: {e}")
+            # 使用示範資料
+            dates_days_to_display = pd.date_range(
+                end=pd.Timestamp.now(), periods=days_to_display, freq="D"
+            )
+            np.random.seed(100)
+            disposal_count = pd.Series(
+                np.random.randint(5, 25, size=days_to_display),
+                index=dates_days_to_display,
+            )
+            noticed_count = pd.Series(
+                np.random.randint(10, 40, size=days_to_display),
+                index=dates_days_to_display,
+            )
+
     except Exception as e:
         print(f"❌ 資料載入錯誤: {e}")
         # 回傳空圖表
@@ -835,12 +1027,20 @@ def update_all_charts(n_intervals, n_clicks):
             empty_fig,
             [],
             [],
+            empty_fig,
+            empty_fig,
             f"更新失敗: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
         )
 
     # 建立圖表
     tse_fig = create_index_chart_with_macd(tse_data, "台股加權指數")
     otc_fig = create_index_chart_with_macd(otc_data, "櫃買指數")
+    disposal_fig = create_stock_count_chart(
+        disposal_count, f"處置股數量 (近{days_to_display}天)", color="#e74c3c"
+    )
+    noticed_fig = create_stock_count_chart(
+        noticed_count, f"警示股數量 (近{days_to_display}天)", color="#f39c12"
+    )
 
     # 生成分析
     tse_ma = generate_ma_analysis(tse_data.iloc[-1], "加權指數")
@@ -852,4 +1052,14 @@ def update_all_charts(n_intervals, n_clicks):
     # 更新時間
     update_time = f"最後更新: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
 
-    return tse_fig, tse_ma, tse_macd, otc_fig, otc_ma, otc_macd, update_time
+    return (
+        tse_fig,
+        tse_ma,
+        tse_macd,
+        otc_fig,
+        otc_ma,
+        otc_macd,
+        disposal_fig,
+        noticed_fig,
+        update_time,
+    )

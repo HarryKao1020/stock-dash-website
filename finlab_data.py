@@ -79,6 +79,10 @@ class FinLabData:
         self._world_index_low = None
         self._world_index_vol = None
 
+        # 處置股和警示股資料
+        self._disposal_stock = None
+        self._noticed_stock = None
+
     @property
     def close(self):
         """收盤價"""
@@ -211,6 +215,82 @@ class FinLabData:
         if self._world_index_vol is None:
             self._world_index_vol = get_price_data("world_index:vol", cache_hours=12)
         return self._world_index_vol
+
+    @property
+    def disposal_stock(self):
+        """非處置股過濾器"""
+        if self._disposal_stock is None:
+            self._disposal_stock = get_price_data(
+                "etl:disposal_stock_filter", cache_hours=24
+            )
+        return self._disposal_stock
+
+    @property
+    def noticed_stock(self):
+        """非注意股過濾器"""
+        if self._noticed_stock is None:
+            self._noticed_stock = get_price_data(
+                "etl:noticed_stock_filter", cache_hours=24
+            )
+        return self._noticed_stock
+
+    def get_disposal_stock_count(self, days=30):
+        """
+        取得處置股數量的時間序列資料
+
+        Args:
+            days: 取得最近幾天的資料
+
+        Returns:
+            pd.Series: 處置股數量時間序列
+        """
+        disposal_df = self.disposal_stock.tail(days * 2)  # 取兩倍天數確保有足夠的工作日
+        # False 代表是處置股，計算每天有多少處置股
+        count_series = (disposal_df == False).sum(axis=1)
+
+        # 過濾週末（只保留週一到週五）
+        weekday_mask = count_series.index.dayofweek < 5
+        count_series = count_series[weekday_mask]
+
+        # 取最後 days 天
+        count_series = count_series.tail(days)
+
+        return count_series
+
+    def get_noticed_stock_count(self, days=30):
+        """
+        取得警示股數量的時間序列資料
+
+        Args:
+            days: 取得最近幾天的資料
+
+        Returns:
+            pd.Series: 警示股數量時間序列
+        """
+        noticed_df = self.noticed_stock.tail(days * 2)  # 取兩倍天數確保有足夠的工作日
+        # False 代表是警示股，計算每天有多少警示股
+        count_series = (noticed_df == False).sum(axis=1)
+
+        # 過濾週末（只保留週一到週五）
+        weekday_mask = count_series.index.dayofweek < 5
+        count_series = count_series[weekday_mask]
+
+        # 取最後 days 天
+        count_series = count_series.tail(days)
+
+        return count_series
+
+    def get_current_disposal_stocks(self):
+        """取得當前處置股列表"""
+        latest = self.disposal_stock.iloc[-1]
+        disposal_stocks = latest[latest == False].index.tolist()
+        return disposal_stocks
+
+    def get_current_noticed_stocks(self):
+        """取得當前警示股列表"""
+        latest = self.noticed_stock.iloc[-1]
+        noticed_stocks = latest[latest == False].index.tolist()
+        return noticed_stocks
 
     def get_world_index_data(self, index_code, days=360):
         """
@@ -359,6 +439,10 @@ class FinLabData:
         self._world_index_low = None
         self._world_index_vol = None
 
+        # 清除處置股和警示股快取
+        self._disposal_stock = None
+        self._noticed_stock = None
+
         # 清除快取檔案
         import shutil
 
@@ -397,7 +481,16 @@ def get_margin_data():
     return finlab_data.get_margin_data()
 
 
-# 在檔案最後加入便利函數
 def get_world_index_data(index_code, days=120):
     """快速取得國際指數資料"""
     return finlab_data.get_world_index_data(index_code, days)
+
+
+def get_disposal_stock_count(days=30):
+    """快速取得處置股數量"""
+    return finlab_data.get_disposal_stock_count(days)
+
+
+def get_noticed_stock_count(days=30):
+    """快速取得警示股數量"""
+    return finlab_data.get_noticed_stock_count(days)
