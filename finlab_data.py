@@ -1,0 +1,403 @@
+import pandas as pd
+from datetime import datetime, timedelta
+import os
+import dotenv
+from pathlib import Path
+import finlab
+from finlab import data
+
+# 載入環境變數
+dotenv.load_dotenv()
+
+
+# 這裡要替換成自己的FinLab VIP token
+token = os.getenv("FINLAB_TOKEN")
+finlab.login(token)
+
+# 快取目錄
+PROJECT_DIR = Path(__file__).parent
+CACHE_DIR = PROJECT_DIR / "cache"
+CACHE_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def get_price_data(field="price:收盤價", cache_hours=24):
+    """
+    取得價格資料,支援快取
+
+    Args:
+        field: FinLab 資料欄位
+        cache_hours: 快取有效時間(小時)
+
+    Returns:
+        pd.DataFrame: 價格資料
+    """
+    cache_file = CACHE_DIR / f'{field.replace(":", "_").replace("/", "_")}.pkl'
+    cache_time_file = CACHE_DIR / f'{field.replace(":", "_").replace("/", "_")}.time'
+
+    # 檢查快取是否存在且未過期
+    if cache_file.exists() and cache_time_file.exists():
+        with open(cache_time_file, "r") as f:
+            cache_time = datetime.fromisoformat(f.read())
+
+        if datetime.now() - cache_time < timedelta(hours=cache_hours):
+            print(f"✓ 讀取快取: {field}")
+            return pd.read_pickle(cache_file)
+
+    # 下載新資料
+    print(f"↓ 下載資料: {field}")
+    df = data.get(field)
+
+    # 儲存快取
+    df.to_pickle(cache_file)
+    with open(cache_time_file, "w") as f:
+        f.write(datetime.now().isoformat())
+
+    return df
+
+
+class FinLabData:
+    """FinLab 資料管理類別"""
+
+    def __init__(self):
+        self._close = None
+        self._open = None
+        self._high = None
+        self._low = None
+        self._volume = None
+        self._company_names = None  # 快取公司名稱
+
+        # 融資相關資料
+        self._margin_balance = None  # 融資今日餘額
+        self._margin_total = None  # 融資券總餘額
+        self._benchmark = None  # 大盤指數
+        self._margin_maintenance_ratio = None  # 融資維持率
+
+        # 國際指數相關資料
+        self._world_index_open = None
+        self._world_index_close = None
+        self._world_index_high = None
+        self._world_index_low = None
+        self._world_index_vol = None
+
+    @property
+    def close(self):
+        """收盤價"""
+        if self._close is None:
+            self._close = get_price_data("price:收盤價")
+        return self._close
+
+    @property
+    def open(self):
+        """開盤價"""
+        if self._open is None:
+            self._open = get_price_data("price:開盤價")
+        return self._open
+
+    @property
+    def high(self):
+        """最高價"""
+        if self._high is None:
+            self._high = get_price_data("price:最高價")
+        return self._high
+
+    @property
+    def low(self):
+        """最低價"""
+        if self._low is None:
+            self._low = get_price_data("price:最低價")
+        return self._low
+
+    @property
+    def volume(self):
+        """成交量"""
+        if self._volume is None:
+            self._volume = get_price_data("price:成交股數")
+        return self._volume
+
+    @property
+    def margin_balance(self):
+        """融資今日餘額"""
+        if self._margin_balance is None:
+            self._margin_balance = get_price_data(
+                "margin_transactions:融資今日餘額", cache_hours=24
+            )
+        return self._margin_balance
+
+    @property
+    def margin_total(self):
+        """融資券總餘額(含買賣超計算)"""
+        if self._margin_total is None:
+            融資券總餘額 = get_price_data("margin_balance:融資券總餘額", cache_hours=24)
+
+            # 對齊索引
+            融資券總餘額 = 融資券總餘額.loc[
+                self.margin_balance.index.intersection(融資券總餘額.index)
+            ]
+
+            # 計算買賣超
+            融資券總餘額["上市融資買賣超"] = (
+                融資券總餘額["上市融資交易金額"]
+                - 融資券總餘額["上市融資交易金額"].shift()
+            ).fillna(0) / 100000000
+
+            融資券總餘額["上櫃融資買賣超"] = (
+                融資券總餘額["上櫃融資交易金額"]
+                - 融資券總餘額["上櫃融資交易金額"].shift()
+            ).fillna(0) / 100000000
+
+            self._margin_total = 融資券總餘額
+
+        return self._margin_total
+
+    @property
+    def benchmark(self):
+        """大盤加權報酬指數"""
+        if self._benchmark is None:
+            self._benchmark = get_price_data(
+                "benchmark_return:發行量加權股價報酬指數", cache_hours=24
+            ).squeeze()
+        return self._benchmark
+
+    @property
+    def margin_maintenance_ratio(self):
+        """融資維持率"""
+        if self._margin_maintenance_ratio is None:
+            # 計算融資總餘額
+            融資總餘額 = self.margin_total[
+                ["上市融資交易金額", "上櫃融資交易金額"]
+            ].sum(axis=1)
+
+            # 計算融資餘額市值
+            融資餘額市值 = (self.margin_balance * self.close * 1000).sum(axis=1)
+
+            # 計算融資維持率
+            self._margin_maintenance_ratio = 融資餘額市值 / 融資總餘額
+
+        return self._margin_maintenance_ratio
+
+    @property
+    def world_index_open(self):
+        """國際指數開盤價"""
+        if self._world_index_open is None:
+            self._world_index_open = get_price_data("world_index:open", cache_hours=12)
+        return self._world_index_open
+
+    @property
+    def world_index_close(self):
+        """國際指數收盤價"""
+        if self._world_index_close is None:
+            self._world_index_close = get_price_data(
+                "world_index:close", cache_hours=12
+            )
+        return self._world_index_close
+
+    @property
+    def world_index_high(self):
+        """國際指數最高價"""
+        if self._world_index_high is None:
+            self._world_index_high = get_price_data("world_index:high", cache_hours=12)
+        return self._world_index_high
+
+    @property
+    def world_index_low(self):
+        """國際指數最低價"""
+        if self._world_index_low is None:
+            self._world_index_low = get_price_data("world_index:low", cache_hours=12)
+        return self._world_index_low
+
+    @property
+    def world_index_vol(self):
+        """國際指數成交量"""
+        if self._world_index_vol is None:
+            self._world_index_vol = get_price_data("world_index:vol", cache_hours=12)
+        return self._world_index_vol
+
+    def get_world_index_data(self, index_code, days=360):
+        """
+        取得國際指數的完整資料
+
+        Args:
+            index_code: 指數代碼 (如 "^TWII", "^GSPC", "^DJI" 等)
+            days: 取得最近幾天的資料
+
+        Returns:
+            pd.DataFrame: 包含 OHLCV 的資料
+        """
+        df = pd.DataFrame(
+            {
+                "open": self.world_index_open[index_code],
+                "high": self.world_index_high[index_code],
+                "low": self.world_index_low[index_code],
+                "close": self.world_index_close[index_code],
+                "volume": self.world_index_vol[index_code],
+            }
+        ).dropna(subset=["close"])
+        # 將 volume 的 NaN 填充為 0
+        df["volume"] = df["volume"].fillna(0)
+
+        # 只取最近 N 天
+        df = df.tail(days)
+
+        # 計算移動平均線
+        df["ma20"] = df["close"].rolling(window=20).mean()
+        df["ma60"] = df["close"].rolling(window=60).mean()
+        df["ma120"] = df["close"].rolling(window=120).mean()
+
+        return df
+
+    def get_stock_data(self, stock_id, start_date=None, end_date=None):
+        """
+        取得單一股票的完整資料
+
+        Args:
+            stock_id: 股票代號
+            start_date: 開始日期
+            end_date: 結束日期
+
+        Returns:
+            pd.DataFrame: 包含 OHLCV 的資料
+        """
+        df = pd.DataFrame(
+            {
+                "open": self.open[stock_id],
+                "high": self.high[stock_id],
+                "low": self.low[stock_id],
+                "close": self.close[stock_id],
+                "volume": self.volume[stock_id],
+            }
+        )
+
+        # 日期篩選
+        if start_date:
+            df = df[df.index >= start_date]
+        if end_date:
+            df = df[df.index <= end_date]
+
+        return df
+
+    def get_margin_data(self):
+        """
+        取得融資相關完整資料
+
+        Returns:
+            tuple: (融資維持率, 融資券總餘額, 大盤指數, 收盤價)
+        """
+        return (
+            self.margin_maintenance_ratio,
+            self.margin_total,
+            self.benchmark,
+            self.close,
+        )
+
+    def get_stock_list(self):
+        """取得所有股票代號列表(包含名稱)"""
+        stock_ids = self.close.columns.tolist()
+
+        # 如果已經快取過名稱,直接使用
+        if self._company_names is None:
+            try:
+                print("📊 載入公司名稱資料...")
+                company_info = data.get("company_basic_info")
+
+                # 轉換成字典: {stock_id: 公司簡稱}
+                self._company_names = {}
+                for _, row in company_info.iterrows():
+                    stock_id = str(row["stock_id"])
+                    company_name = row["公司簡稱"]
+                    self._company_names[stock_id] = company_name
+
+                print(f"✓ 成功載入 {len(self._company_names)} 個公司名稱")
+
+            except Exception as e:
+                print(f"⚠️ 無法取得股票名稱: {e}")
+                self._company_names = {}
+
+        # 組合股票列表 "代號 名稱"
+        stock_list = []
+        for sid in stock_ids:
+            name = self._company_names.get(sid, "")
+            stock_list.append(f"{sid} {name}" if name else sid)
+
+        return stock_list
+
+    def get_stock_name(self, stock_id):
+        """
+        取得單一股票的名稱
+
+        Args:
+            stock_id: 股票代號
+
+        Returns:
+            str: 公司簡稱
+        """
+        # 確保已載入公司名稱
+        if self._company_names is None:
+            self.get_stock_list()
+
+        return self._company_names.get(stock_id, "")
+
+    def refresh(self):
+        """強制重新下載所有資料"""
+        print("🔄 清除快取並重新下載...")
+        self._close = None
+        self._open = None
+        self._high = None
+        self._low = None
+        self._volume = None
+        self._company_names = None
+
+        # 清除融資相關快取
+        self._margin_balance = None
+        self._margin_total = None
+        self._benchmark = None
+        self._margin_maintenance_ratio = None
+
+        # 清除國際指數快取
+        self._world_index_open = None
+        self._world_index_close = None
+        self._world_index_high = None
+        self._world_index_low = None
+        self._world_index_vol = None
+
+        # 清除快取檔案
+        import shutil
+
+        if CACHE_DIR.exists():
+            shutil.rmtree(CACHE_DIR)
+            CACHE_DIR.mkdir()
+
+
+# 建立全域實例
+finlab_data = FinLabData()
+
+
+# 便利函數
+def get_close():
+    """快速取得收盤價"""
+    return finlab_data.close
+
+
+def get_volume():
+    """快速取得成交量"""
+    return finlab_data.volume
+
+
+def get_stock_list():
+    """快速取得股票列表(含名稱)"""
+    return finlab_data.get_stock_list()
+
+
+def get_stock_name(stock_id):
+    """快速取得股票名稱"""
+    return finlab_data.get_stock_name(stock_id)
+
+
+def get_margin_data():
+    """快速取得融資相關資料"""
+    return finlab_data.get_margin_data()
+
+
+# 在檔案最後加入便利函數
+def get_world_index_data(index_code, days=120):
+    """快速取得國際指數資料"""
+    return finlab_data.get_world_index_data(index_code, days)
