@@ -47,6 +47,32 @@ def get_transaction_amount_from_finlab():
         return None
 
 
+def _recalculate_all_indicators(df):
+    """
+    重新計算整個 DataFrame 的所有技術指標 (MACD 和均線)
+
+    Args:
+        df: DataFrame，包含 OHLC 資料
+
+    Returns:
+        DataFrame: 包含重新計算後的技術指標
+    """
+    df = df.copy()
+
+    # 計算 MACD
+    df["DIF"], df["MACD"], df["MACD_Hist"] = talib.MACD(
+        df["Close"].values, fastperiod=12, slowperiod=26, signalperiod=9
+    )
+
+    # 計算均線
+    df["ma5"] = df["Close"].rolling(window=5).mean().round(2)
+    df["ma20"] = df["Close"].rolling(window=20).mean().round(2)
+    df["ma60"] = df["Close"].rolling(window=60).mean().round(2)
+    df["ma120"] = df["Close"].rolling(window=120).mean().round(2)
+
+    return df
+
+
 def get_index_with_macd(api, index_type="TSE", start="2024-10-01", end="2025-12-01"):
     """
     取得指數日線 + MACD + 均線
@@ -334,19 +360,8 @@ def get_index_data_smart(
                     subset=["Open", "High", "Low", "Close"]
                 )
 
-                # 重新計算均線 (因為新增資料後均線會改變)
-                historical_df["ma5"] = (
-                    historical_df["Close"].rolling(window=5).mean().round(2)
-                )
-                historical_df["ma20"] = (
-                    historical_df["Close"].rolling(window=20).mean().round(2)
-                )
-                historical_df["ma60"] = (
-                    historical_df["Close"].rolling(window=60).mean().round(2)
-                )
-                historical_df["ma120"] = (
-                    historical_df["Close"].rolling(window=120).mean().round(2)
-                )
+                # 🆕 重新計算所有技術指標（確保沒有 NaN）
+                historical_df = _recalculate_all_indicators(historical_df)
 
                 print(f"✅ 合併完成: 共 {len(historical_df)} 筆資料")
 
@@ -428,28 +443,8 @@ def get_index_data_smart(
 
             historical_df = pd.concat([historical_df, today_data.to_frame().T])
 
-        # 重新計算今天的 MACD 和均線
-        window_size = 50
-        recent_data = historical_df.tail(window_size)
-
-        macd_dif, macd_signal, macd_hist = talib.MACD(
-            recent_data["Close"].values, fastperiod=12, slowperiod=26, signalperiod=9
-        )
-
-        if not np.isnan(macd_dif[-1]):
-            historical_df.loc[today, "DIF"] = macd_dif[-1]
-            historical_df.loc[today, "MACD"] = macd_signal[-1]
-            historical_df.loc[today, "MACD_Hist"] = macd_hist[-1]
-
-        # 計算均線
-        if len(historical_df) >= 5:
-            historical_df.loc[today, "ma5"] = historical_df["Close"].tail(5).mean()
-        if len(historical_df) >= 20:
-            historical_df.loc[today, "ma20"] = historical_df["Close"].tail(20).mean()
-        if len(historical_df) >= 60:
-            historical_df.loc[today, "ma60"] = historical_df["Close"].tail(60).mean()
-        if len(historical_df) >= 120:
-            historical_df.loc[today, "ma120"] = historical_df["Close"].tail(120).mean()
+        # 🆕 重新計算所有技術指標（確保今天和昨天都有值）
+        historical_df = _recalculate_all_indicators(historical_df)
 
         print(f"✅ {index_type} 即時資料更新完成 (收盤: {snapshot.close:.2f})")
 
@@ -557,8 +552,8 @@ def get_cached_or_fetch(api, force_refresh=False, realtime_update=True):
                     "ma120": np.nan,
                 }
 
-            # 重新計算 TSE 今天的指標
-            _recalculate_indicators(_tse_cache, today)
+            # 🆕 重新計算 TSE 所有技術指標
+            _tse_cache = _recalculate_all_indicators(_tse_cache)
 
             # 更新 OTC
             otc_snapshot = snapshots[1]
@@ -591,8 +586,8 @@ def get_cached_or_fetch(api, force_refresh=False, realtime_update=True):
                     "ma120": np.nan,
                 }
 
-            # 重新計算 OTC 今天的指標
-            _recalculate_indicators(_otc_cache, today)
+            # 🆕 重新計算 OTC 所有技術指標
+            _otc_cache = _recalculate_all_indicators(_otc_cache)
 
             print(
                 f"✅ 即時資料更新完成 - TSE: {tse_snapshot.close:.2f}, OTC: {otc_snapshot.close:.2f}"
@@ -613,9 +608,9 @@ def get_cached_or_fetch(api, force_refresh=False, realtime_update=True):
 
 
 def _recalculate_indicators(df, today):
-    """重新計算今天的技術指標 (MACD 和均線)"""
-    import talib
-
+    """
+    重新計算今天的技術指標 (MACD 和均線) - 舊版，保留向後相容
+    """
     # 計算 MACD (使用最近 50 筆)
     window_size = min(50, len(df))
     recent_data = df.tail(window_size)

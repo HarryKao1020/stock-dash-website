@@ -24,7 +24,7 @@ stock_list = finlab_data.get_stock_list()
 # 頁面布局
 layout = html.Div(
     [
-        html.H1("FinLab 量化分析儀表板", style={"marginBottom": "30px"}),
+        html.H1("個股K線圖", style={"marginBottom": "30px"}),
         html.Div(
             [
                 html.Div(

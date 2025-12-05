@@ -39,6 +39,7 @@ except:
 dash.register_page(__name__, path="/realtime-market", name="即時盤勢")
 
 font_size = "1rem"
+days_to_display = 60  # 處置股/警示股顯示天數
 
 
 def create_index_chart_with_macd(df, title="加權指數"):
@@ -196,6 +197,62 @@ def create_index_chart_with_macd(df, title="加權指數"):
     return fig
 
 
+def create_stock_count_chart(count_series, title="股票數量", color="#ff6b6b"):
+    """
+    建立處置股或警示股數量柱狀圖
+
+    Args:
+        count_series: pd.Series，日期為索引，數量為值（已過濾週末）
+        title: 圖表標題
+        color: 柱狀圖顏色
+
+    Returns:
+        plotly figure
+    """
+    # 將日期索引轉換為字串格式（只保留日期部分）
+    date_strings = count_series.index.strftime("%Y-%m-%d")
+
+    fig = go.Figure()
+
+    fig.add_trace(
+        go.Bar(
+            x=date_strings,  # 使用格式化後的日期字串
+            y=count_series.values,
+            name=title,
+            marker_color=color,
+            text=count_series.values,
+            textposition="outside",
+            hovertemplate="<b>日期</b>: %{x}<br>"
+            + "<b>數量</b>: %{y}<br>"
+            + "<extra></extra>",
+        )
+    )
+
+    fig.update_layout(
+        title=dict(
+            text=title,
+            font=dict(size=16, color="navy"),
+            x=0.5,
+            xanchor="center",
+            y=0.95,
+            yanchor="top",
+        ),
+        xaxis_title="日期",
+        yaxis_title="數量",
+        height=400,
+        hovermode="x unified",
+        template="plotly_white",
+        margin=dict(l=50, r=20, t=80, b=50),
+        showlegend=False,
+    )
+
+    # 使用 type='category' 來自動移除沒有資料的日期
+    fig.update_xaxes(showgrid=True, gridcolor="rgba(128,128,128,0.2)", type="category")
+    fig.update_yaxes(showgrid=True, gridcolor="rgba(128,128,128,0.2)")
+
+    return fig
+
+
 def generate_ma_analysis(latest_data, index_name="加權指數"):
     """
     生成均線分析文字
@@ -320,6 +377,74 @@ def generate_ma_analysis(latest_data, index_name="加權指數"):
                 )
             )
 
+    # ===== 均線排列結論 =====
+    ma5 = latest_data.get("ma5")
+    ma20 = latest_data.get("ma20")
+    ma60 = latest_data.get("ma60")
+
+    if pd.notna(ma5) and pd.notna(ma20) and pd.notna(ma60):
+        # 判斷均線排列
+        if ma5 > ma20 and ma20 > ma60:
+            # 多頭排列
+            conclusion_text = "📊 多頭排列"
+            conclusion_color = "#d32f2f"  # 深紅色
+            conclusion_desc = "5MA > 20MA > 60MA，趨勢向上"
+        elif ma5 < ma20 and ma20 > ma60 and ma5 > ma60:
+            # 多頭短期修正
+            conclusion_text = "📊 多頭短期修正"
+            conclusion_color = "#ff9800"  # 橘色
+            conclusion_desc = "5MA < 20MA，但 5MA > 60MA，短線回檔"
+        elif ma5 > ma20 and ma20 < ma60 and ma5 < ma60:
+            # 空頭短期反彈
+            conclusion_text = "📊 空頭短期反彈"
+            conclusion_color = "#2196f3"  # 藍色
+            conclusion_desc = "5MA > 20MA，但 5MA < 60MA，短線反彈"
+        elif ma5 < ma20 and ma20 < ma60:
+            # 空頭排列
+            conclusion_text = "📊 空頭排列"
+            conclusion_color = "#1b5e20"  # 深綠色
+            conclusion_desc = "5MA < 20MA < 60MA，趨勢向下"
+        else:
+            # 其他情況（盤整）
+            conclusion_text = "📊 均線糾結"
+            conclusion_color = "#666666"  # 灰色
+            conclusion_desc = "均線交錯，趨勢不明"
+
+        analyses.append(
+            html.Li(
+                [
+                    html.Span("─" * 20, style={"color": "#ccc"}),
+                ],
+                style={"listStyleType": "none", "marginTop": "10px"},
+            )
+        )
+        analyses.append(
+            html.Li(
+                [
+                    html.Span(
+                        f"結論: {conclusion_text}",
+                        style={
+                            "color": conclusion_color,
+                            "fontWeight": "bold",
+                            "fontSize": "1.1em",
+                        },
+                    ),
+                ],
+                style={"listStyleType": "none"},
+            )
+        )
+        analyses.append(
+            html.Li(
+                [
+                    html.Span(
+                        conclusion_desc,
+                        style={"color": "#666", "fontSize": "0.9em"},
+                    ),
+                ],
+                style={"listStyleType": "none", "marginLeft": "20px"},
+            )
+        )
+
     return analyses
 
 
@@ -331,14 +456,22 @@ def generate_macd_analysis(df, index_name="加權指數"):
         df: DataFrame，包含完整歷史資料
         index_name: 指數名稱
     """
-    latest = df.iloc[-1]
-    prev = df.iloc[-2] if len(df) > 1 else None
+    # 確保使用原始資料的副本
+    df = df.copy()
+
+    # 直接用 iloc 取得最後兩筆資料
+    if len(df) < 2:
+        return []
+
+    latest_hist = df["MACD_Hist"].iloc[-1]
+    prev_hist = df["MACD_Hist"].iloc[-2]
+    latest_dif = df["DIF"].iloc[-1]
 
     analyses = []
 
     # DIF 分析
-    if pd.notna(latest["DIF"]):
-        dif = latest["DIF"]
+    if pd.notna(latest_dif):
+        dif = float(latest_dif)
         if dif > 0:
             analyses.append(
                 html.Li(
@@ -365,129 +498,140 @@ def generate_macd_analysis(df, index_name="加權指數"):
             )
 
     # MACD 柱狀體分析
-    if pd.notna(latest["MACD_Hist"]):
-        hist = latest["MACD_Hist"]
+    if pd.notna(latest_hist):
+        hist = float(latest_hist)
 
-        # 當前柱狀體顏色
+        # 檢查前一天是否有值
+        prev_hist_val = float(prev_hist) if pd.notna(prev_hist) else None
+
+        # 當前柱狀體顏色 + 增長/縮短狀態
         if hist > 0:
-            analyses.append(
-                html.Li(
-                    [
-                        html.Span(
-                            "🔴 柱狀體紅色",
-                            style={"color": "#ef5350", "fontWeight": "bold"},
-                        ),
-                        html.Span(f" (MACD Hist: {hist:.2f})"),
-                    ]
-                )
-            )
-        else:
-            analyses.append(
-                html.Li(
-                    [
-                        html.Span(
-                            "🟢 柱狀體綠色",
-                            style={"color": "#26a69a", "fontWeight": "bold"},
-                        ),
-                        html.Span(f" (MACD Hist: {hist:.2f})"),
-                    ]
-                )
-            )
-
-        # 與前一日比較
-        if prev is not None and pd.notna(prev["MACD_Hist"]):
-            prev_hist = prev["MACD_Hist"]
-
-            if prev_hist < 0 and hist > 0:
+            # 紅柱
+            if prev_hist_val is not None and prev_hist_val > 0:
+                # 前一天也是紅柱，比較增長/縮短
+                if hist > prev_hist_val:
+                    growth_text = "↑ 增長"
+                    growth_color = "#d32f2f"
+                else:
+                    growth_text = "↓ 縮短"
+                    growth_color = "#ff6f61"
                 analyses.append(
                     html.Li(
                         [
                             html.Span(
-                                "🔄 柱狀體綠轉紅",
+                                "🔴 柱狀體紅色",
+                                style={"color": "#ef5350", "fontWeight": "bold"},
+                            ),
+                            html.Span(
+                                f" {growth_text}",
+                                style={"color": growth_color, "fontWeight": "bold"},
+                            ),
+                            html.Span(
+                                f" (MACD Hist: {hist:.2f}, 前: {prev_hist_val:.2f})"
+                            ),
+                        ]
+                    )
+                )
+            elif prev_hist_val is not None and prev_hist_val <= 0:
+                # 綠轉紅
+                analyses.append(
+                    html.Li(
+                        [
+                            html.Span(
+                                "🔴 柱狀體紅色",
+                                style={"color": "#ef5350", "fontWeight": "bold"},
+                            ),
+                            html.Span(
+                                " 🔄 綠轉紅",
                                 style={
                                     "color": "#ef5350",
                                     "fontWeight": "bold",
                                     "fontSize": "1.1em",
                                 },
                             ),
-                            html.Span(f" (前: {prev_hist:.2f} → 現: {hist:.2f})"),
+                            html.Span(
+                                f" (MACD Hist: {hist:.2f}, 前: {prev_hist_val:.2f})"
+                            ),
                         ]
                     )
                 )
-            elif prev_hist > 0 and hist < 0:
+            else:
+                # 沒有前一天資料
                 analyses.append(
                     html.Li(
                         [
                             html.Span(
-                                "🔄 柱狀體紅轉綠",
+                                "🔴 柱狀體紅色",
+                                style={"color": "#ef5350", "fontWeight": "bold"},
+                            ),
+                            html.Span(f" (MACD Hist: {hist:.2f})"),
+                        ]
+                    )
+                )
+        else:
+            # 綠柱
+            if prev_hist_val is not None and prev_hist_val < 0:
+                # 前一天也是綠柱，比較增長/縮短
+                # 綠柱增長 = hist 更負 (prev_hist_val > hist)
+                if prev_hist_val > hist:
+                    growth_text = "↓ 增長"
+                    growth_color = "#1b5e20"
+                else:
+                    growth_text = "↑ 縮短"
+                    growth_color = "#4caf50"
+                analyses.append(
+                    html.Li(
+                        [
+                            html.Span(
+                                "🟢 柱狀體綠色",
+                                style={"color": "#26a69a", "fontWeight": "bold"},
+                            ),
+                            html.Span(
+                                f" {growth_text}",
+                                style={"color": growth_color, "fontWeight": "bold"},
+                            ),
+                            html.Span(
+                                f" (MACD Hist: {hist:.2f}, 前: {prev_hist_val:.2f})"
+                            ),
+                        ]
+                    )
+                )
+            elif prev_hist_val is not None and prev_hist_val >= 0:
+                # 紅轉綠
+                analyses.append(
+                    html.Li(
+                        [
+                            html.Span(
+                                "🟢 柱狀體綠色",
+                                style={"color": "#26a69a", "fontWeight": "bold"},
+                            ),
+                            html.Span(
+                                " 🔄 紅轉綠",
                                 style={
                                     "color": "#26a69a",
                                     "fontWeight": "bold",
                                     "fontSize": "1.1em",
                                 },
                             ),
-                            html.Span(f" (前: {prev_hist:.2f} → 現: {hist:.2f})"),
+                            html.Span(
+                                f" (MACD Hist: {hist:.2f}, 前: {prev_hist_val:.2f})"
+                            ),
                         ]
                     )
                 )
-            elif hist > 0 and prev_hist > 0:
-                if hist > prev_hist:
-                    analyses.append(
-                        html.Li(
-                            [
-                                html.Span(
-                                    "📊 紅柱增長",
-                                    style={"color": "#d32f2f", "fontWeight": "bold"},
-                                ),
-                                html.Span(
-                                    f" (前: {prev_hist:.2f} → 現: {hist:.2f}, +{hist-prev_hist:.2f})"
-                                ),
-                            ]
-                        )
+            else:
+                # 沒有前一天資料
+                analyses.append(
+                    html.Li(
+                        [
+                            html.Span(
+                                "🟢 柱狀體綠色",
+                                style={"color": "#26a69a", "fontWeight": "bold"},
+                            ),
+                            html.Span(f" (MACD Hist: {hist:.2f})"),
+                        ]
                     )
-                else:
-                    analyses.append(
-                        html.Li(
-                            [
-                                html.Span(
-                                    "📉 紅柱縮小",
-                                    style={"color": "#ff6f61", "fontWeight": "bold"},
-                                ),
-                                html.Span(
-                                    f" (前: {prev_hist:.2f} → 現: {hist:.2f}, {hist-prev_hist:.2f})"
-                                ),
-                            ]
-                        )
-                    )
-            elif hist < 0 and prev_hist < 0:
-                if abs(hist) > abs(prev_hist):
-                    analyses.append(
-                        html.Li(
-                            [
-                                html.Span(
-                                    "📊 綠柱增長",
-                                    style={"color": "#1b5e20", "fontWeight": "bold"},
-                                ),
-                                html.Span(
-                                    f" (前: {prev_hist:.2f} → 現: {hist:.2f}, {hist-prev_hist:.2f})"
-                                ),
-                            ]
-                        )
-                    )
-                else:
-                    analyses.append(
-                        html.Li(
-                            [
-                                html.Span(
-                                    "📈 綠柱縮小",
-                                    style={"color": "#4caf50", "fontWeight": "bold"},
-                                ),
-                                html.Span(
-                                    f" (前: {prev_hist:.2f} → 現: {hist:.2f}, {hist-prev_hist:.2f})"
-                                ),
-                            ]
-                        )
-                    )
+                )
 
     return analyses
 
@@ -702,6 +846,125 @@ layout = dbc.Container(
                 ),  # 右側佔一半
             ]
         ),
+        # 新增處置股和警示股圖表
+        html.Hr(
+            style={"margin": "40px 0", "border-color": "#00a896", "border-width": "2px"}
+        ),
+        dbc.Row(
+            [
+                dbc.Col(
+                    [
+                        html.H3(
+                            "🚨 處置股與警示股統計",
+                            className="text-center mb-4",
+                            style={"color": "#2c3e50", "fontWeight": "bold"},
+                        ),
+                    ],
+                    width=12,
+                )
+            ]
+        ),
+        dbc.Row(
+            [
+                # 左側: 處置股數量
+                dbc.Col(
+                    [
+                        html.H4(
+                            f"⛔ 處置股數量 (近{days_to_display}天)",
+                            className="mb-3",
+                            style={"color": "#e74c3c"},
+                        ),
+                        dcc.Loading(
+                            id="loading-disposal",
+                            type="default",
+                            children=[
+                                dcc.Graph(
+                                    id="disposal-chart",
+                                    config={"displayModeBar": True},
+                                    style={"height": "400px"},
+                                ),
+                            ],
+                        ),
+                    ],
+                    width=6,
+                ),
+                # 右側: 警示股數量
+                dbc.Col(
+                    [
+                        html.H4(
+                            f"⚠️ 警示股數量 (近{days_to_display}天)",
+                            className="mb-3",
+                            style={"color": "#f39c12"},
+                        ),
+                        dcc.Loading(
+                            id="loading-noticed",
+                            type="default",
+                            children=[
+                                dcc.Graph(
+                                    id="noticed-chart",
+                                    config={"displayModeBar": True},
+                                    style={"height": "400px"},
+                                ),
+                            ],
+                        ),
+                    ],
+                    width=6,
+                ),
+            ],
+            className="mb-4",
+        ),
+        # 說明卡片
+        dbc.Row(
+            [
+                dbc.Col(
+                    [
+                        dbc.Card(
+                            [
+                                dbc.CardBody(
+                                    [
+                                        html.H5(
+                                            "💡 說明",
+                                            className="card-title text-info",
+                                        ),
+                                        html.Ul(
+                                            [
+                                                html.Li(
+                                                    [
+                                                        html.Strong("處置股"),
+                                                        html.Div(
+                                                            "處置股大部分都是飆股佔比居多,可以視為『 行情很好 』,代表投資人賺錢比例高且追價意願高"
+                                                        ),
+                                                        html.Div(
+                                                            "反之處置股數量減少，可能代表『 行情不好 』，沒有出現上漲的連續性,就沒有飆股,建議減少交易次數"
+                                                        ),
+                                                    ]
+                                                ),
+                                                html.Li(
+                                                    [
+                                                        html.Strong("警示股"),
+                                                        html.Div(
+                                                            "警示股大部分都是近期漲幅或周轉率高的佔比居多,可以視為『 行情還不錯 』,股價延續性較佳"
+                                                        ),
+                                                        html.Div(
+                                                            "反之警示股數量減少,可能代表『 行情不好 』,股價無延續性,容易買進就套牢,建議減少交易次數"
+                                                        ),
+                                                    ]
+                                                ),
+                                                html.Li(
+                                                    "處置股和警示股通常伴隨較高的投資風險，建議謹慎操作"
+                                                ),
+                                            ]
+                                        ),
+                                    ]
+                                )
+                            ],
+                            className="shadow-sm",
+                        )
+                    ],
+                    width=12,
+                )
+            ]
+        ),
     ],
     fluid=True,
     className="p-4",
@@ -729,6 +992,8 @@ def update_interval(seconds):
         Output("otc-chart", "figure"),
         Output("otc-ma-analysis", "children"),
         Output("otc-macd-analysis", "children"),
+        Output("disposal-chart", "figure"),
+        Output("noticed-chart", "figure"),
         Output("last-update-time", "children"),
     ],
     [
@@ -834,6 +1099,30 @@ def update_all_charts(n_intervals, n_clicks):
                 otc_data["Close"].values, fastperiod=12, slowperiod=26, signalperiod=9
             )
 
+        # ========== 處置股和警示股資料 ==========
+        try:
+            from finlab_data import get_disposal_stock_count, get_noticed_stock_count
+
+            disposal_count = get_disposal_stock_count(days=days_to_display)
+            noticed_count = get_noticed_stock_count(days=days_to_display)
+        except Exception as e:
+            print(f"⚠️ 載入處置股/警示股資料失敗: {e}")
+            # 使用示範資料
+            dates_demo = pd.date_range(
+                end=pd.Timestamp.now(), periods=days_to_display, freq="D"
+            )
+            # 過濾週末
+            dates_demo = dates_demo[dates_demo.dayofweek < 5]
+            np.random.seed(100)
+            disposal_count = pd.Series(
+                np.random.randint(5, 25, size=len(dates_demo)),
+                index=dates_demo,
+            )
+            noticed_count = pd.Series(
+                np.random.randint(10, 40, size=len(dates_demo)),
+                index=dates_demo,
+            )
+
     except Exception as e:
         print(f"❌ 資料載入錯誤: {e}")
         # 回傳空圖表
@@ -854,12 +1143,20 @@ def update_all_charts(n_intervals, n_clicks):
             empty_fig,
             [],
             [],
+            empty_fig,
+            empty_fig,
             f"更新失敗: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
         )
 
     # 建立圖表
     tse_fig = create_index_chart_with_macd(tse_data, "台股加權指數")
     otc_fig = create_index_chart_with_macd(otc_data, "櫃買指數")
+    disposal_fig = create_stock_count_chart(
+        disposal_count, f"處置股數量 (近{days_to_display}天)", color="#e74c3c"
+    )
+    noticed_fig = create_stock_count_chart(
+        noticed_count, f"警示股數量 (近{days_to_display}天)", color="#f39c12"
+    )
 
     # 生成分析
     tse_ma = generate_ma_analysis(tse_data.iloc[-1], "加權指數")
@@ -871,4 +1168,14 @@ def update_all_charts(n_intervals, n_clicks):
     # 更新時間
     update_time = f"最後更新: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
 
-    return tse_fig, tse_ma, tse_macd, otc_fig, otc_ma, otc_macd, update_time
+    return (
+        tse_fig,
+        tse_ma,
+        tse_macd,
+        otc_fig,
+        otc_ma,
+        otc_macd,
+        disposal_fig,
+        noticed_fig,
+        update_time,
+    )

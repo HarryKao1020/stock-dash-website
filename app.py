@@ -69,6 +69,14 @@ sidebar = dbc.Nav(
             href="/market-value-ranking",
             active="exact",
         ),
+        dbc.NavLink(
+            [
+                html.I(className="fas fa-money-bill-wave me-2"),
+                html.Span("金流排行"),
+            ],
+            href="/money-flow",
+            active="exact",
+        ),
     ],
     vertical=True,
     pills=True,

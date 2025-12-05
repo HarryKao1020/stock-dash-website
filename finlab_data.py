@@ -64,6 +64,7 @@ class FinLabData:
         self._high = None
         self._low = None
         self._volume = None
+        self._amount = None  # 成交金額
         self._company_names = None  # 快取公司名稱
 
         # 融資相關資料
@@ -117,6 +118,15 @@ class FinLabData:
         if self._volume is None:
             self._volume = get_price_data("price:成交股數")
         return self._volume
+
+    @property
+    def amount(self):
+        """成交金額"""
+        if self._amount is None:
+            self._amount = get_price_data("price:成交金額", cache_hours=12)
+            # 確保數值為 float
+            self._amount = self._amount.astype(float)
+        return self._amount
 
     @property
     def margin_balance(self):
@@ -292,6 +302,56 @@ class FinLabData:
         noticed_stocks = latest[latest == False].index.tolist()
         return noticed_stocks
 
+    def get_top_amount_stocks(self, date_offset=0, top_n=100):
+        """
+        取得指定日期的成交金額前 N 名
+
+        Args:
+            date_offset: 日期偏移量 (0 = 最新一天, 1 = 前一天, ...)
+            top_n: 取前幾名
+
+        Returns:
+            tuple: (DataFrame, target_date)
+        """
+        df = self.amount
+
+        # 取得指定日期的資料
+        date_idx = -(date_offset + 1)  # -1 是最後一筆, -2 是倒數第二筆...
+
+        if abs(date_idx) > len(df):
+            date_idx = -len(df)
+
+        target_date = df.index[date_idx]
+        day_data = df.loc[target_date].dropna()
+
+        # 確保數值為 float 並排序
+        day_data = day_data.astype(float)
+        top_stocks = day_data.nlargest(top_n)
+
+        # 建立結果 DataFrame
+        result = pd.DataFrame(
+            {
+                "股票代號": top_stocks.index,
+                "成交金額": top_stocks.values,
+                "成交金額(億)": top_stocks.values / 1e8,
+            }
+        )
+
+        # 加入股票名稱
+        result["股票名稱"] = result["股票代號"].apply(self.get_stock_name)
+
+        # 建立顯示標籤
+        result["顯示標籤"] = result.apply(
+            lambda row: (
+                f"{row['股票代號']} {row['股票名稱']}"
+                if row["股票名稱"]
+                else row["股票代號"]
+            ),
+            axis=1,
+        )
+
+        return result, target_date
+
     def get_world_index_data(self, index_code, days=360):
         """
         取得國際指數的完整資料
@@ -424,6 +484,7 @@ class FinLabData:
         self._high = None
         self._low = None
         self._volume = None
+        self._amount = None  # 成交金額
         self._company_names = None
 
         # 清除融資相關快取
@@ -466,6 +527,11 @@ def get_volume():
     return finlab_data.volume
 
 
+def get_amount():
+    """快速取得成交金額"""
+    return finlab_data.amount
+
+
 def get_stock_list():
     """快速取得股票列表(含名稱)"""
     return finlab_data.get_stock_list()
@@ -494,3 +560,8 @@ def get_disposal_stock_count(days=30):
 def get_noticed_stock_count(days=30):
     """快速取得警示股數量"""
     return finlab_data.get_noticed_stock_count(days)
+
+
+def get_top_amount_stocks(date_offset=0, top_n=100):
+    """快速取得成交金額前 N 名"""
+    return finlab_data.get_top_amount_stocks(date_offset, top_n)
