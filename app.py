@@ -1,6 +1,7 @@
 import dash
 from dash import Dash, html, dcc
 import dash_bootstrap_components as dbc
+import os
 
 
 # 👇 加入這段
@@ -98,5 +99,13 @@ app.layout = dbc.Container(
     fluid=True,
 )
 
+
+# 本地啟動server
+# if __name__ == "__main__":
+#     app.run(debug=True)
+
+
+# 部署到 Render
+server = app.server  # 給 gunicorn 使用
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=False, host="0.0.0.0", port=int(os.environ.get("PORT", 8050)))

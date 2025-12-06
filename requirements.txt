@@ -1,0 +1,10 @@
+dash
+dash-bootstrap-components
+plotly
+pandas
+numpy
+python-dotenv
+finlab
+shioaji
+talib-binary
+gunicorn
