@@ -11,17 +11,17 @@ from pathlib import Path
 PROJECT_DIR = Path(__file__).parent
 sys.path.insert(0, str(PROJECT_DIR))
 
-from finlab_data import finlab_data
+# from finlab_data import finlab_data
 
 # 強制清除舊快取（第一次執行後可以註解掉）
-print("🔄 清除舊快取...")
-finlab_data.refresh()
-print("✅ 快取已清除，重新下載資料中...")
+# print("🔄 清除舊快取...")
+# finlab_data.refresh()
+# print("✅ 快取已清除，重新下載資料中...")
 
-# 測試資料
-print("🧪 app.py 中的資料測試:")
-test_close = finlab_data.world_index_close
-print(f"   資料日期範圍: {test_close.index.min()} ~ {test_close.index.max()}")
+# # 測試資料
+# print("🧪 app.py 中的資料測試:")
+# test_close = finlab_data.world_index_close
+# print(f"   資料日期範圍: {test_close.index.min()} ~ {test_close.index.max()}")
 
 # 初始化 Dash app,使用 Bootstrap 主題
 app = Dash(
