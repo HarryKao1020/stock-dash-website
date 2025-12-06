@@ -101,11 +101,11 @@ app.layout = dbc.Container(
 
 
 # 本地啟動server
-# if __name__ == "__main__":
-#     app.run(debug=True)
+if __name__ == "__main__":
+    app.run(debug=True)
 
 
 # 部署到 Render
-server = app.server  # 給 gunicorn 使用
-if __name__ == "__main__":
-    app.run(debug=False, host="0.0.0.0", port=int(os.environ.get("PORT", 8050)))
+# server = app.server  # 給 gunicorn 使用
+# if __name__ == "__main__":
+#     app.run(debug=False, host="0.0.0.0", port=int(os.environ.get("PORT", 8050)))

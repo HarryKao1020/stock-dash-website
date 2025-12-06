@@ -11,11 +11,16 @@ from datetime import datetime, date
 from pathlib import Path
 import pickle
 from finlab import data
+import sys
+from pathlib import Path
 
 
-# 快取目錄設定
-CACHE_DIR = Path(__file__).parent / "cache" / "shioaji"
-CACHE_DIR.mkdir(parents=True, exist_ok=True)
+# 匯入共用函數
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from finlab_data import get_cache_dir
+
+# 快取目錄
+CACHE_DIR = get_cache_dir("shioaji")
 
 
 def get_transaction_amount_from_finlab():
