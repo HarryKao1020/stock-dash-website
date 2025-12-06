@@ -534,24 +534,7 @@ class FinLabData:
 
 
 # 建立全域實例
-# finlab_data = FinLabData()
-
-# 延遲載入實例
-_finlab_data = None
-
-
-def get_finlab_data():
-    """延遲載入 FinLabData 實例"""
-    global _finlab_data
-    if _finlab_data is None:
-        _finlab_data = FinLabData()
-    return _finlab_data
-
-
-# 保持向後相容
-finlab_data = property(lambda self: get_finlab_data())
-
-# ==== 延遲載入結束 ====
+finlab_data = FinLabData()
 
 
 # 便利函數
