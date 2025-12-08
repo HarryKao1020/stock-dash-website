@@ -1,5 +1,5 @@
 import dash
-from dash import Dash, html, dcc
+from dash import Dash, html, dcc, callback, Input, Output, State
 import dash_bootstrap_components as dbc
 import os
 
@@ -26,80 +26,190 @@ print(f"   資料日期範圍: {test_close.index.min()} ~ {test_close.index.max(
 app = Dash(
     __name__,
     use_pages=True,  # 啟用多頁面功能
-    external_stylesheets=[dbc.themes.BOOTSTRAP],
+    external_stylesheets=[
+        dbc.themes.BOOTSTRAP,
+        "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css",
+    ],
     suppress_callback_exceptions=True,
+    meta_tags=[
+        {"name": "viewport", "content": "width=device-width, initial-scale=1.0"}
+    ],
 )
 
 # ✅ 為 Gunicorn 提供 WSGI 入口點（必須放在條件判斷外面）
 server = app.server
 
-# 側邊導航列
-sidebar = dbc.Nav(
+# 導航連結資料
+nav_links = [
+    {"icon": "fa-home", "text": "首頁/世界指數", "href": "/"},
+    {"icon": "fa-chart-line", "text": "即時盤勢", "href": "/realtime-market"},
+    {"icon": "fa-chart-simple", "text": "K線圖", "href": "/kline"},
+    {"icon": "fa-th-large", "text": "族群區塊圖", "href": "/treemap"},
+    {"icon": "fa-coins", "text": "融資卷餘額/維持率", "href": "/margin-balance"},
+    {"icon": "fa-trophy", "text": "市值排行", "href": "/market-value-ranking"},
+    {"icon": "fa-money-bill-wave", "text": "金流排行", "href": "/money-flow"},
+]
+
+# 桌面版側邊導航列
+sidebar_desktop = html.Div(
     [
-        dbc.NavLink(
-            [html.I(className="fas fa-chart-bar me-2"), html.Span("首頁/世界指數")],
-            href="/",
-            active="exact",
-        ),
-        dbc.NavLink(
-            [html.I(className="fas fa-chart-bar me-2"), html.Span("即時盤勢")],
-            href="/realtime-market",
-            active="exact",
-        ),
-        dbc.NavLink(
-            [html.I(className="fas fa-chart-line me-2"), html.Span("K線圖")],
-            href="/kline",
-            active="exact",
-        ),
-        dbc.NavLink(
-            [html.I(className="fas fa-th me-2"), html.Span("族群區塊圖")],
-            href="/treemap",
-            active="exact",
-        ),
-        dbc.NavLink(
+        # Logo/標題區
+        html.Div(
             [
-                html.I(className="fas fa-chart-line me-2"),
-                html.Span("融資卷餘額/維持率"),
+                html.H5("📊 操盤小天地", className="text-primary mb-0 fw-bold"),
             ],
-            href="/margin-balance",
-            active="exact",
+            className="sidebar-header p-3 border-bottom",
         ),
-        dbc.NavLink(
+        # 導航連結
+        dbc.Nav(
             [
-                html.I(className="fas fa-trophy me-2"),
-                html.Span("市值排行"),
+                dbc.NavLink(
+                    [
+                        html.I(className=f"fas {link['icon']} me-2"),
+                        html.Span(link["text"]),
+                    ],
+                    href=link["href"],
+                    active="exact",
+                    className="sidebar-link",
+                )
+                for link in nav_links
             ],
-            href="/market-value-ranking",
-            active="exact",
-        ),
-        dbc.NavLink(
-            [
-                html.I(className="fas fa-money-bill-wave me-2"),
-                html.Span("金流排行"),
-            ],
-            href="/money-flow",
-            active="exact",
+            vertical=True,
+            pills=True,
+            className="flex-column pt-2",
         ),
     ],
-    vertical=True,
-    pills=True,
-    className="bg-light sidebar",
+    className="sidebar-desktop",
+    id="sidebar-desktop",
+)
+
+# 手機版頂部導航列
+navbar_mobile = dbc.Navbar(
+    dbc.Container(
+        [
+            # Logo
+            html.A(
+                html.Span("📊 操盤小天地", className="navbar-brand-text fw-bold"),
+                href="/",
+                className="navbar-brand",
+            ),
+            # 漢堡選單按鈕
+            dbc.Button(
+                html.I(className="fas fa-bars fa-lg"),
+                id="navbar-toggler",
+                className="navbar-toggler border-0 p-2",
+                n_clicks=0,
+            ),
+        ],
+        fluid=True,
+    ),
+    color="primary",
+    dark=True,
+    className="d-lg-none navbar-mobile",
+    sticky="top",
+)
+
+# 手機版側邊抽屜選單
+sidebar_mobile = dbc.Offcanvas(
+    [
+        html.Div(
+            [
+                html.H5("📊 操盤小天地", className="text-primary fw-bold"),
+                html.Hr(),
+            ],
+            className="mb-3",
+        ),
+        dbc.Nav(
+            [
+                dbc.NavLink(
+                    [
+                        html.I(className=f"fas {link['icon']} me-3 fs-5"),
+                        html.Span(link["text"], className="fs-6"),
+                    ],
+                    href=link["href"],
+                    active="exact",
+                    className="mobile-nav-link py-3 px-3 rounded mb-1",
+                    id=f"mobile-link-{i}",
+                )
+                for i, link in enumerate(nav_links)
+            ],
+            vertical=True,
+            pills=True,
+        ),
+    ],
+    id="sidebar-mobile",
+    title="",
+    is_open=False,
+    placement="start",
+    className="offcanvas-mobile",
+    style={"width": "280px"},
 )
 
 # 主要布局
-app.layout = dbc.Container(
+app.layout = html.Div(
     [
-        dbc.Row(
+        # 手機版導航列
+        navbar_mobile,
+        # 手機版側邊抽屜
+        sidebar_mobile,
+        # 主要內容區
+        html.Div(
             [
-                # 側邊欄
-                dbc.Col(sidebar, width=2, className="bg-light min-vh-100"),
-                # 主要內容區
-                dbc.Col(dash.page_container, width=10, className="p-4"),
-            ]
-        )
+                dbc.Row(
+                    [
+                        # 桌面版側邊欄
+                        dbc.Col(
+                            sidebar_desktop,
+                            lg=2,
+                            className="sidebar-col d-none d-lg-block p-0",
+                        ),
+                        # 主要內容區
+                        dbc.Col(
+                            html.Div(
+                                dash.page_container,
+                                className="main-content p-3 p-lg-4",
+                            ),
+                            xs=12,
+                            lg=10,
+                            className="content-col",
+                        ),
+                    ],
+                    className="g-0",
+                ),
+            ],
+            className="main-container",
+        ),
     ],
-    fluid=True,
+    className="app-wrapper",
 )
+
+
+# Callback: 切換手機版側邊選單
+@callback(
+    Output("sidebar-mobile", "is_open"),
+    [Input("navbar-toggler", "n_clicks")]
+    + [Input(f"mobile-link-{i}", "n_clicks") for i in range(len(nav_links))],
+    [State("sidebar-mobile", "is_open")],
+    prevent_initial_call=True,
+)
+def toggle_sidebar(toggler_clicks, *args):
+    """切換手機版側邊選單"""
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        return False
+
+    trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
+
+    # 如果是漢堡按鈕，切換開關
+    if trigger_id == "navbar-toggler":
+        return not args[-1]  # args[-1] 是 is_open state
+
+    # 如果是導航連結，關閉選單
+    if trigger_id.startswith("mobile-link-"):
+        return False
+
+    return args[-1]
+
 
 # 本地開發時直接執行
 if __name__ == "__main__":

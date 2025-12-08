@@ -1,23 +1,518 @@
-.sidebar {
+/* ========================================
+   全域樣式
+   ======================================== */
+:root {
+    --sidebar-width: 220px;
+    --navbar-height: 56px;
+    --primary-color: #0d6efd;
+    --hover-bg: #e9ecef;
+    --active-bg: #0d6efd;
+    --text-color: #333;
+    --border-color: #dee2e6;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background-color: #f8f9fa;
+}
+
+/* ========================================
+   App 包裝器
+   ======================================== */
+.app-wrapper {
+    min-height: 100vh;
+}
+
+/* ========================================
+   桌面版側邊欄 (lg 以上顯示)
+   ======================================== */
+.sidebar-col {
     position: fixed;
-    z-index: 10;
     top: 0;
     left: 0;
     height: 100vh;
-    padding: 20px 10px;
+    width: var(--sidebar-width);
+    z-index: 100;
 }
 
-.sidebar .nav-link {
-    color: #333;
-    margin-bottom: 10px;
-    border-radius: 5px;
+.sidebar-desktop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: var(--sidebar-width);
+    height: 100vh;
+    background-color: #fff;
+    border-right: 1px solid var(--border-color);
+    overflow-y: auto;
+    z-index: 100;
 }
 
-.sidebar .nav-link:hover {
-    background-color: #e9ecef;
+.sidebar-header {
+    background-color: #fff;
+    position: sticky;
+    top: 0;
+    z-index: 10;
 }
 
-.sidebar .nav-link.active {
-    background-color: #0d6efd;
+/* 側邊欄導航連結 */
+.sidebar-desktop .nav-link,
+.sidebar-link {
+    color: var(--text-color);
+    padding: 12px 16px;
+    margin: 2px 8px;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    font-size: 0.9rem;
+}
+
+.sidebar-desktop .nav-link:hover,
+.sidebar-link:hover {
+    background-color: var(--hover-bg);
+    color: var(--text-color);
+}
+
+.sidebar-desktop .nav-link.active,
+.sidebar-link.active {
+    background-color: var(--active-bg);
     color: white;
+}
+
+.sidebar-desktop .nav-link i,
+.sidebar-link i {
+    width: 20px;
+    text-align: center;
+}
+
+/* ========================================
+   手機版頂部導航列 (lg 以下顯示)
+   ======================================== */
+.navbar-mobile {
+    z-index: 1030;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.navbar-mobile .navbar-brand {
+    font-size: 1.1rem;
+}
+
+.navbar-mobile .navbar-brand-text {
+    color: white;
+}
+
+.navbar-toggler {
+    background: transparent;
+    color: white;
+}
+
+.navbar-toggler:focus {
+    box-shadow: none;
+}
+
+.navbar-toggler:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}
+
+/* ========================================
+   手機版側邊抽屜選單
+   ======================================== */
+.offcanvas-mobile {
+    max-width: 280px;
+}
+
+.offcanvas-mobile .offcanvas-header {
+    border-bottom: 1px solid var(--border-color);
+}
+
+.mobile-nav-link {
+    color: var(--text-color);
+    transition: all 0.2s ease;
+    border: none;
+}
+
+.mobile-nav-link:hover {
+    background-color: var(--hover-bg);
+    color: var(--text-color);
+}
+
+.mobile-nav-link.active {
+    background-color: var(--active-bg);
+    color: white;
+}
+
+/* ========================================
+   主要內容區
+   ======================================== */
+.content-col {
+    min-height: 100vh;
+}
+
+.main-content {
+    background-color: #f8f9fa;
+    min-height: 100vh;
+}
+
+/* 桌面版：內容區需要左邊距來避開固定側邊欄 */
+@media (min-width: 992px) {
+    .content-col {
+        margin-left: var(--sidebar-width);
+    }
+}
+
+/* 手機版：內容區需要頂部邊距來避開固定導航列 */
+@media (max-width: 991.98px) {
+    .main-content {
+        padding-top: 10px;
+    }
+}
+
+/* ========================================
+   卡片和元件響應式調整
+   ======================================== */
+/* 卡片間距 */
+.card {
+    margin-bottom: 1rem;
+}
+
+/* 手機版卡片樣式 */
+@media (max-width: 767.98px) {
+    .card {
+        border-radius: 8px;
+    }
+
+    .card-body {
+        padding: 1rem;
+    }
+
+    /* 標題調整 */
+    h1 {
+        font-size: 1.5rem;
+    }
+
+    h2 {
+        font-size: 1.3rem;
+    }
+
+    h3 {
+        font-size: 1.15rem;
+    }
+
+    h4,
+    h5 {
+        font-size: 1rem;
+    }
+}
+
+/* ========================================
+   圖表響應式調整
+   ======================================== */
+/* Plotly 圖表容器 */
+.js-plotly-plot {
+    width: 100% !important;
+}
+
+/* 手機版圖表高度調整 */
+@media (max-width: 767.98px) {
+    .js-plotly-plot .plotly {
+        min-height: 300px;
+    }
+}
+
+/* ========================================
+   表格響應式調整
+   ======================================== */
+.table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* 手機版表格字體 */
+@media (max-width: 767.98px) {
+    .table {
+        font-size: 0.85rem;
+    }
+
+    .table th,
+    .table td {
+        padding: 0.5rem;
+        white-space: nowrap;
+    }
+}
+
+/* ========================================
+   表單元件響應式調整
+   ======================================== */
+/* DatePicker 調整 */
+.DateInput_input {
+    font-size: 14px !important;
+    padding: 8px !important;
+}
+
+@media (max-width: 767.98px) {
+    .DateInput_input {
+        font-size: 12px !important;
+        padding: 6px !important;
+    }
+
+    .DateRangePickerInput {
+        display: flex;
+        flex-wrap: wrap;
+    }
+}
+
+/* Slider 調整 */
+.rc-slider {
+    margin: 10px 0;
+}
+
+/* Dropdown 調整 */
+@media (max-width: 767.98px) {
+    .Select-control {
+        min-height: 36px;
+    }
+
+    .Select-value-label {
+        font-size: 14px;
+    }
+}
+
+/* ========================================
+   按鈕響應式調整
+   ======================================== */
+@media (max-width: 767.98px) {
+    .btn {
+        padding: 0.5rem 1rem;
+        font-size: 0.9rem;
+    }
+
+    .btn-group {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .btn-group .btn {
+        flex: 1 1 auto;
+    }
+}
+
+/* ========================================
+   網格系統響應式調整
+   ======================================== */
+/* 手機版讓並排的圖表變成上下排列 */
+@media (max-width: 991.98px) {
+    .row>[class*="col-lg-6"] {
+        margin-bottom: 1rem;
+    }
+}
+
+/* ========================================
+   即時盤勢頁面特別調整
+   ======================================== */
+@media (max-width: 991.98px) {
+
+    /* 技術分析卡片 */
+    .card ul {
+        padding-left: 1.2rem;
+    }
+
+    .card li {
+        font-size: 0.9rem;
+        margin-bottom: 0.5rem;
+    }
+}
+
+/* ========================================
+   首頁特色功能卡片調整
+   ======================================== */
+@media (max-width: 767.98px) {
+
+    /* 首頁功能卡片在手機版變成 2x2 */
+    .row>[class*="col-"][class*="width-3"] {
+        flex: 0 0 50%;
+        max-width: 50%;
+    }
+}
+
+@media (max-width: 575.98px) {
+
+    /* 極小螢幕變成單欄 */
+    .row>[class*="col-"][class*="width-3"] {
+        flex: 0 0 100%;
+        max-width: 100%;
+    }
+}
+
+/* ========================================
+   Loading 動畫
+   ======================================== */
+._dash-loading {
+    margin: 20px auto;
+}
+
+/* ========================================
+   滾動條美化
+   ======================================== */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #a1a1a1;
+}
+
+/* ========================================
+   金流排行頁面調整
+   ======================================== */
+@media (max-width: 767.98px) {
+
+    /* 日期選擇器和按鈕的排列 */
+    .SingleDatePicker {
+        display: block;
+        margin-bottom: 0.5rem;
+    }
+}
+
+/* ========================================
+   市值排行頁面調整
+   ======================================== */
+@media (max-width: 767.98px) {
+
+    /* Slider 標籤調整 */
+    .rc-slider-mark-text {
+        font-size: 10px;
+    }
+}
+
+/* ========================================
+   Alert 和提示訊息
+   ======================================== */
+.alert {
+    border-radius: 8px;
+}
+
+@media (max-width: 767.98px) {
+    .alert {
+        font-size: 0.9rem;
+        padding: 0.75rem 1rem;
+    }
+}
+
+/* ========================================
+   統計摘要卡片
+   ======================================== */
+@media (max-width: 767.98px) {
+
+    /* 摘要卡片在手機版變成 2 欄 */
+    .row>[class*="col-"][class*="width-4"],
+    .row>[class*="col-"][class*="width-3"] {
+        flex: 0 0 50%;
+        max-width: 50%;
+        margin-bottom: 0.5rem;
+    }
+
+    .row>[class*="col-"][class*="width-4"] .card h4,
+    .row>[class*="col-"][class*="width-3"] .card h4 {
+        font-size: 1rem;
+    }
+
+    .row>[class*="col-"][class*="width-4"] .card h6,
+    .row>[class*="col-"][class*="width-3"] .card h6 {
+        font-size: 0.8rem;
+    }
+}
+
+/* ========================================
+   Dash 特定元件修復
+   ======================================== */
+/* 修復 DatePicker 在手機版的顯示 */
+.SingleDatePickerInput,
+.DateRangePickerInput {
+    display: inline-flex;
+    align-items: center;
+}
+
+/* 修復 Dropdown 在手機版的寬度 */
+@media (max-width: 767.98px) {
+    .Select {
+        min-width: 150px;
+    }
+
+    .dash-dropdown {
+        min-width: 150px;
+    }
+}
+
+/* ========================================
+   頁面特定調整 - Treemap
+   ======================================== */
+@media (max-width: 767.98px) {
+
+    /* Treemap 控制項在手機版垂直排列 */
+    #treemap-start-date,
+    #treemap-end-date,
+    #area-ind-selector,
+    #item-selector {
+        margin-bottom: 0.5rem;
+    }
+}
+
+/* ========================================
+   頁面特定調整 - K線圖
+   ======================================== */
+@media (max-width: 767.98px) {
+    #stock-selector {
+        width: 100% !important;
+        margin-bottom: 0.5rem;
+    }
+
+    #date-range {
+        margin-bottom: 0.5rem;
+    }
+}
+
+/* ========================================
+   工具提示和 Hover 效果
+   ======================================== */
+/* 手機版停用部分 hover 效果以提升效能 */
+@media (max-width: 767.98px) {
+    .card:hover {
+        transform: none;
+    }
+}
+
+/* ========================================
+   打印樣式
+   ======================================== */
+@media print {
+
+    .sidebar-desktop,
+    .navbar-mobile,
+    .sidebar-mobile {
+        display: none !important;
+    }
+
+    .content-col {
+        margin-left: 0 !important;
+    }
+
+    .main-content {
+        padding: 0 !important;
+    }
 }
