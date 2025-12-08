@@ -1,7 +1,9 @@
 """
-Shioaji API 資料處理模組
-用於取得台股加權指數和櫃買指數的即時資料
-整合 FinLab 的歷史成交金額資料
+Shioaji API 資料處理模組 - 優化版
+改進：
+1. 更聰明的快取邏輯（避免重複計算）
+2. 即時資料有獨立的更新間隔（預設 60 秒）
+3. 只在資料真正變化時才重新計算指標
 """
 
 import pandas as pd
@@ -12,8 +14,8 @@ from pathlib import Path
 import pickle
 from finlab import data
 import sys
-from pathlib import Path
-
+import time
+import threading
 
 # 匯入共用函數
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -22,30 +24,31 @@ from finlab_data import get_cache_dir
 # 快取目錄
 CACHE_DIR = get_cache_dir("shioaji")
 
+# ============================================
+# 🆕 全域快取變數
+# ============================================
+_tse_cache = None
+_otc_cache = None
+_last_historical_update = None  # 歷史資料上次更新時間
+_last_realtime_update = None  # 即時資料上次更新時間
+_cache_lock = threading.Lock()
+
+# 🆕 快取設定
+HISTORICAL_UPDATE_INTERVAL = 3600  # 歷史資料更新間隔（秒）= 1 小時
+REALTIME_UPDATE_INTERVAL = 60  # 即時資料更新間隔（秒）= 1 分鐘
+
 
 def get_transaction_amount_from_finlab():
-    """
-    從 FinLab 取得歷史成交金額資料
-
-    Returns:
-        DataFrame: 包含 TAIEX 和 OTC 的成交金額 (單位: 億元)
-    """
+    """從 FinLab 取得歷史成交金額資料"""
     try:
         print("📥 從 FinLab 取得成交金額資料...")
         money = data.get("market_transaction_info:成交金額")
-
-        # 轉換單位為億元
         result = pd.DataFrame(
             {"TSE_Amount": money["TAIEX"] / 1e8, "OTC_Amount": money["OTC"] / 1e8}
         )
-
-        # 🆕 過濾週末資料
         result = result[result.index.dayofweek < 5]
-        result = result.dropna()  # 移除任何 NaN
-
-        print(
-            f"✅ FinLab 成交金額資料載入完成 (截至 {result.index.max().date()}，共 {len(result)} 筆)"
-        )
+        result = result.dropna()
+        print(f"✅ FinLab 成交金額資料載入完成 (截至 {result.index.max().date()})")
         return result
     except Exception as e:
         print(f"⚠️ 無法從 FinLab 取得成交金額: {e}")
@@ -53,75 +56,74 @@ def get_transaction_amount_from_finlab():
 
 
 def _recalculate_all_indicators(df):
-    """
-    重新計算整個 DataFrame 的所有技術指標 (MACD 和均線)
-
-    Args:
-        df: DataFrame，包含 OHLC 資料
-
-    Returns:
-        DataFrame: 包含重新計算後的技術指標
-    """
+    """重新計算整個 DataFrame 的所有技術指標"""
     df = df.copy()
-
-    # 計算 MACD
     df["DIF"], df["MACD"], df["MACD_Hist"] = talib.MACD(
         df["Close"].values, fastperiod=12, slowperiod=26, signalperiod=9
     )
-
-    # 計算均線
     df["ma5"] = df["Close"].rolling(window=5).mean().round(2)
     df["ma20"] = df["Close"].rolling(window=20).mean().round(2)
     df["ma60"] = df["Close"].rolling(window=60).mean().round(2)
     df["ma120"] = df["Close"].rolling(window=120).mean().round(2)
+    return df
+
+
+def _recalculate_today_only(df, today):
+    """
+    🆕 只重新計算今天的指標（比重算整個 DataFrame 快很多）
+    """
+    # MACD - 只用最近 50 筆計算
+    window_size = min(50, len(df))
+    recent_close = df["Close"].tail(window_size).values
+
+    macd_dif, macd_signal, macd_hist = talib.MACD(
+        recent_close, fastperiod=12, slowperiod=26, signalperiod=9
+    )
+
+    if len(macd_dif) > 0 and not np.isnan(macd_dif[-1]):
+        df.loc[today, "DIF"] = macd_dif[-1]
+        df.loc[today, "MACD"] = macd_signal[-1]
+        df.loc[today, "MACD_Hist"] = macd_hist[-1]
+
+    # 均線 - 只計算今天的值
+    if len(df) >= 5:
+        df.loc[today, "ma5"] = df["Close"].tail(5).mean().round(2)
+    if len(df) >= 20:
+        df.loc[today, "ma20"] = df["Close"].tail(20).mean().round(2)
+    if len(df) >= 60:
+        df.loc[today, "ma60"] = df["Close"].tail(60).mean().round(2)
+    if len(df) >= 120:
+        df.loc[today, "ma120"] = df["Close"].tail(120).mean().round(2)
 
     return df
 
 
 def get_index_with_macd(api, index_type="TSE", start="2024-10-01", end="2025-12-01"):
-    """
-    取得指數日線 + MACD + 均線
-    注意: 此函數的 Amount 來自 Shioaji API (已除以 1e8 轉為億元)
-    """
-    # 選擇合約
+    """取得指數日線 + MACD + 均線"""
     contract = (
         api.Contracts.Indexs.TSE.TSE001
         if index_type == "TSE"
         else api.Contracts.Indexs.OTC.OTC101
     )
 
-    # 取得並處理資料
     kbars = api.kbars(contract=contract, start=start, end=end)
     df = pd.DataFrame(kbars.model_dump())
     df["ts"] = pd.to_datetime(df["ts"])
     df["date"] = df["ts"].dt.date
 
-    # 轉日線
     daily = df.groupby("date").agg(
         {"Open": "first", "High": "max", "Low": "min", "Close": "last", "Amount": "sum"}
     )
 
     daily.index = pd.to_datetime(daily.index)
-
-    # 將 Amount 轉為億元 (Shioaji 的 Amount 單位較大)
     daily["Amount"] = daily["Amount"] / 1e8
 
-    # 計算 MACD
-    daily["DIF"], daily["MACD"], daily["MACD_Hist"] = talib.MACD(
-        daily["Close"].values, fastperiod=12, slowperiod=26, signalperiod=9
-    )
+    # 計算技術指標
+    daily = _recalculate_all_indicators(daily)
 
-    # 計算均線
-    daily["ma5"] = daily["Close"].rolling(window=5).mean().round(2)
-    daily["ma20"] = daily["Close"].rolling(window=20).mean().round(2)
-    daily["ma60"] = daily["Close"].rolling(window=60).mean().round(2)
-    daily["ma120"] = daily["Close"].rolling(window=120).mean().round(2)
-
-    # 🆕 過濾週末和空資料
-    daily = daily[daily.index.dayofweek < 5]  # 移除週六日
-    daily = daily.dropna(subset=["Open", "High", "Low", "Close"])  # 移除 NaN
-
-    print(f"✅ {index_type} 過濾後剩餘 {len(daily)} 筆交易日資料")
+    # 過濾週末
+    daily = daily[daily.index.dayofweek < 5]
+    daily = daily.dropna(subset=["Open", "High", "Low", "Close"])
 
     return daily[
         [
@@ -129,7 +131,7 @@ def get_index_with_macd(api, index_type="TSE", start="2024-10-01", end="2025-12-
             "High",
             "Low",
             "Close",
-            "Amount",  # 改為 Amount (單位: 億元)
+            "Amount",
             "DIF",
             "MACD",
             "MACD_Hist",
@@ -141,116 +143,18 @@ def get_index_with_macd(api, index_type="TSE", start="2024-10-01", end="2025-12-
     ]
 
 
-def update_both_indexes_realtime(tse_df, otc_df, api, use_cache=True):
-    """
-    同時更新 TSE 和 OTC (1分鐘更新優化版) + 均線計算
-    """
-
-    contracts = [api.Contracts.Indexs.TSE.TSE001, api.Contracts.Indexs.OTC.OTC101]
-
-    try:
-        snapshots = api.snapshots(contracts)
-    except Exception as e:
-        print(f"API 呼叫失敗: {e}")
-        return tse_df, otc_df
-
-    def update_single_df(daily_df, snapshot):
-        today = pd.Timestamp(datetime.fromtimestamp(snapshot.ts / 1e9).date())
-
-        # 檢查是否為新的一天
-        is_new_day = today not in daily_df.index
-
-        if is_new_day:
-            # 新增當天資料
-            daily_df.loc[today] = {
-                "Open": snapshot.open,
-                "High": snapshot.high,
-                "Low": snapshot.low,
-                "Close": snapshot.close,
-                "Amount": snapshot.total_amount / 1e8,  # 改為 Amount (億元)
-                "DIF": np.nan,
-                "MACD": np.nan,
-                "MACD_Hist": np.nan,
-                "ma5": np.nan,
-                "ma20": np.nan,
-                "ma60": np.nan,
-                "ma120": np.nan,
-            }
-        else:
-            # 更新當天資料
-            daily_df.loc[today, "Open"] = snapshot.open
-            daily_df.loc[today, "High"] = max(
-                daily_df.loc[today, "High"], snapshot.high
-            )
-            daily_df.loc[today, "Low"] = min(daily_df.loc[today, "Low"], snapshot.low)
-            daily_df.loc[today, "Close"] = snapshot.close
-            daily_df.loc[today, "Amount"] = snapshot.total_amount / 1e8  # 更新成交金額
-
-        # 計算 MACD - 只取必要的資料長度
-        window_size = 50
-        if len(daily_df) >= window_size:
-            recent_data = daily_df.tail(window_size)
-        else:
-            recent_data = daily_df
-
-        macd_dif, macd_signal, macd_hist = talib.MACD(
-            recent_data["Close"].values, fastperiod=12, slowperiod=26, signalperiod=9
-        )
-
-        # 只更新今天的 MACD 值
-        if not np.isnan(macd_dif[-1]):
-            daily_df.loc[today, "DIF"] = macd_dif[-1]
-            daily_df.loc[today, "MACD"] = macd_signal[-1]
-            daily_df.loc[today, "MACD_Hist"] = macd_hist[-1]
-
-        # 計算均線 - 使用 rolling 方式更有效率
-        # ma5
-        if len(daily_df) >= 5:
-            ma5_window = daily_df["Close"].tail(5)
-            daily_df.loc[today, "ma5"] = ma5_window.mean()
-
-        # ma20
-        if len(daily_df) >= 20:
-            ma20_window = daily_df["Close"].tail(20)
-            daily_df.loc[today, "ma20"] = ma20_window.mean()
-
-        # ma60
-        if len(daily_df) >= 60:
-            ma60_window = daily_df["Close"].tail(60)
-            daily_df.loc[today, "ma60"] = ma60_window.mean()
-
-        # ma120
-        if len(daily_df) >= 120:
-            ma120_window = daily_df["Close"].tail(120)
-            daily_df.loc[today, "ma120"] = ma120_window.mean()
-
-        return daily_df
-
-    tse_df = update_single_df(tse_df, snapshots[0])
-    otc_df = update_single_df(otc_df, snapshots[1])
-
-    return tse_df, otc_df
-
-
 def _get_cache_path(index_type):
-    """取得快取檔案路徑"""
     return CACHE_DIR / f"{index_type}_historical.pkl"
 
 
 def _save_to_cache(df, index_type):
-    """儲存歷史資料到快取檔案"""
     try:
         cache_path = _get_cache_path(index_type)
-        # 只儲存今天之前的資料
         today = pd.Timestamp.now().normalize()
         historical_df = df[df.index < today].copy()
-
         with open(cache_path, "wb") as f:
             pickle.dump(historical_df, f)
-
-        print(
-            f"✅ {index_type} 歷史資料已儲存到快取 (截至 {historical_df.index.max().date()})"
-        )
+        print(f"✅ {index_type} 歷史資料已儲存到快取")
         return True
     except Exception as e:
         print(f"⚠️ 儲存快取失敗: {e}")
@@ -258,17 +162,12 @@ def _save_to_cache(df, index_type):
 
 
 def _load_from_cache(index_type):
-    """從快取檔案載入歷史資料"""
     try:
         cache_path = _get_cache_path(index_type)
-
         if not cache_path.exists():
-            print(f"📂 找不到 {index_type} 的快取檔案")
             return None
-
         with open(cache_path, "rb") as f:
             df = pickle.load(f)
-
         print(f"✅ 從快取載入 {index_type} 歷史資料 (截至 {df.index.max().date()})")
         return df
     except Exception as e:
@@ -277,60 +176,26 @@ def _load_from_cache(index_type):
 
 
 def _need_update_historical(cached_df):
-    """檢查是否需要更新歷史資料"""
     if cached_df is None:
         return True
-
-    # 檢查快取的最後日期
     last_date = cached_df.index.max()
     yesterday = pd.Timestamp.now().normalize() - pd.Timedelta(days=1)
-
-    # 如果快取資料到昨天,就不用更新
-    if last_date >= yesterday:
-        print(f"📊 歷史資料已是最新 (截至 {last_date.date()})")
-        return False
-
-    print(f"🔄 歷史資料需要更新 (快取: {last_date.date()}, 需要到: {yesterday.date()})")
-    return True
+    return last_date < yesterday
 
 
 def get_index_data_smart(
     api, index_type="TSE", start="2024-01-01", force_refresh=False
 ):
-    """
-    智慧取得指數資料 (使用快取優化 + 整合 FinLab 成交金額)
-
-    策略:
-    1. 優先使用 FinLab 的歷史成交金額 (到昨天為止)
-    2. 用 Shioaji 補充價格資料 (OHLC)
-    3. 用 snapshot 更新今天的即時資料 (包括成交金額)
-
-    Args:
-        api: Shioaji API 實例
-        index_type: 'TSE' 或 'OTC'
-        start: 開始日期
-        force_refresh: 強制重新下載所有資料
-
-    Returns:
-        DataFrame: 包含完整資料 (包括今天)
-    """
+    """智慧取得指數資料（使用快取優化）"""
     today = pd.Timestamp.now().normalize()
     yesterday = today - pd.Timedelta(days=1)
 
-    # 1. 嘗試載入快取
     cached_df = None if force_refresh else _load_from_cache(index_type)
-
-    # 2. 取得 FinLab 的歷史成交金額
     finlab_amount = get_transaction_amount_from_finlab()
 
-    # 3. 檢查是否需要更新歷史資料
     if cached_df is None or _need_update_historical(cached_df):
-        # 需要下載歷史資料
         if cached_df is None:
-            # 完全沒有快取,下載全部
-            print(
-                f"📥 下載 {index_type} 完整歷史資料 ({start} ~ {yesterday.date()})..."
-            )
+            print(f"📥 下載 {index_type} 完整歷史資料...")
             historical_df = get_index_with_macd(
                 api,
                 index_type=index_type,
@@ -338,10 +203,8 @@ def get_index_data_smart(
                 end=yesterday.strftime("%Y-%m-%d"),
             )
         else:
-            # 有快取,只下載缺少的部分
             last_cached_date = cached_df.index.max()
             next_day = (last_cached_date + pd.Timedelta(days=1)).strftime("%Y-%m-%d")
-
             print(f"📥 下載 {index_type} 增量資料 ({next_day} ~ {yesterday.date()})...")
 
             try:
@@ -351,59 +214,39 @@ def get_index_data_smart(
                     start=next_day,
                     end=yesterday.strftime("%Y-%m-%d"),
                 )
-
-                # 合併舊資料和新資料
                 historical_df = pd.concat([cached_df, new_data])
                 historical_df = historical_df[
                     ~historical_df.index.duplicated(keep="last")
                 ]
                 historical_df = historical_df.sort_index()
-
-                # 🆕 合併後立即過濾週末和空資料
                 historical_df = historical_df[historical_df.index.dayofweek < 5]
                 historical_df = historical_df.dropna(
                     subset=["Open", "High", "Low", "Close"]
                 )
-
-                # 🆕 重新計算所有技術指標（確保沒有 NaN）
                 historical_df = _recalculate_all_indicators(historical_df)
-
-                print(f"✅ 合併完成: 共 {len(historical_df)} 筆資料")
-
             except Exception as e:
-                print(f"⚠️ 增量更新失敗,使用快取資料: {e}")
+                print(f"⚠️ 增量更新失敗: {e}")
                 historical_df = cached_df
 
-        # ========== 🆕 用 FinLab 的成交金額取代 Shioaji 的 Amount ==========
+        # 用 FinLab 成交金額
         if finlab_amount is not None:
             amount_col = "TSE_Amount" if index_type == "TSE" else "OTC_Amount"
-
-            # 只取代歷史資料的 Amount (今天不取代,因為 FinLab 沒有當日資料)
             common_dates = historical_df.index.intersection(finlab_amount.index)
             historical_df.loc[common_dates, "Amount"] = finlab_amount.loc[
                 common_dates, amount_col
             ]
 
-            print(f"✅ 已用 FinLab 成交金額取代 {len(common_dates)} 天的歷史資料")
-
-        # 儲存到快取
         _save_to_cache(historical_df, index_type)
     else:
-        # 快取資料已是最新
         historical_df = cached_df
-
-        # ========== 🆕 即使用快取,也要更新 Amount (因為 FinLab 可能有新資料) ==========
         if finlab_amount is not None:
             amount_col = "TSE_Amount" if index_type == "TSE" else "OTC_Amount"
             common_dates = historical_df.index.intersection(finlab_amount.index)
             historical_df.loc[common_dates, "Amount"] = finlab_amount.loc[
                 common_dates, amount_col
             ]
-            print(f"✅ 已用 FinLab 成交金額更新快取資料")
 
-    # 4. 更新今天的即時資料 (使用 Shioaji snapshot)
-    print(f"📡 取得 {index_type} 今日即時資料...")
-
+    # 取得今日即時資料
     try:
         contract = (
             api.Contracts.Indexs.TSE.TSE001
@@ -412,9 +255,7 @@ def get_index_data_smart(
         )
         snapshot = api.snapshots([contract])[0]
 
-        # 檢查今天是否已有資料
         if today in historical_df.index:
-            # 更新今天的資料
             historical_df.loc[today, "Open"] = snapshot.open
             historical_df.loc[today, "High"] = max(
                 historical_df.loc[today, "High"], snapshot.high
@@ -423,18 +264,15 @@ def get_index_data_smart(
                 historical_df.loc[today, "Low"], snapshot.low
             )
             historical_df.loc[today, "Close"] = snapshot.close
-            historical_df.loc[today, "Amount"] = (
-                snapshot.total_amount / 1e8
-            )  # 當日用 Shioaji
+            historical_df.loc[today, "Amount"] = snapshot.total_amount / 1e8
         else:
-            # 新增今天的資料
             today_data = pd.Series(
                 {
                     "Open": snapshot.open,
                     "High": snapshot.high,
                     "Low": snapshot.low,
                     "Close": snapshot.close,
-                    "Amount": snapshot.total_amount / 1e8,  # 當日用 Shioaji
+                    "Amount": snapshot.total_amount / 1e8,
                     "DIF": np.nan,
                     "MACD": np.nan,
                     "MACD_Hist": np.nan,
@@ -445,255 +283,147 @@ def get_index_data_smart(
                 },
                 name=today,
             )
-
             historical_df = pd.concat([historical_df, today_data.to_frame().T])
 
-        # 🆕 重新計算所有技術指標（確保今天和昨天都有值）
-        historical_df = _recalculate_all_indicators(historical_df)
-
-        print(f"✅ {index_type} 即時資料更新完成 (收盤: {snapshot.close:.2f})")
+        # 只重算今天的指標
+        historical_df = _recalculate_today_only(historical_df, today)
 
     except Exception as e:
         print(f"⚠️ 即時資料更新失敗: {e}")
 
-    # 🆕 過濾週末資料（移除週六、週日）
     historical_df = historical_df[historical_df.index.dayofweek < 5]
-    print(f"✅ 已過濾週末資料，剩餘 {len(historical_df)} 筆交易日資料")
-
     return historical_df
 
 
-# 全域變數用於快取資料
-_tse_cache = None
-_otc_cache = None
-_last_update = None
-
-
-def get_cached_or_fetch(api, force_refresh=False, realtime_update=True):
+def get_cached_or_fetch(api, force_refresh=False):
     """
-    取得快取的資料或重新抓取 (改進版,使用檔案快取 + FinLab 成交金額)
+    🆕 優化版：更聰明的快取邏輯
 
-    Args:
-        api: Shioaji API 實例
-        force_refresh: 是否強制重新抓取歷史資料
-        realtime_update: 是否每次都更新即時資料 (預設 True)
-
-    Returns:
-        tuple: (tse_df, otc_df)
+    - 歷史資料：每小時檢查一次
+    - 即時資料：每 60 秒更新一次（非交易時間不更新）
+    - 頁面切換時：直接返回快取，不重新計算
     """
-    global _tse_cache, _otc_cache, _last_update
+    global _tse_cache, _otc_cache, _last_historical_update, _last_realtime_update
 
     now = datetime.now()
     current_time = now.time()
 
-    # 判斷是否在交易時間內 (8:45 ~ 14:00)
+    # 交易時間判斷
     trading_start = datetime.strptime("08:45", "%H:%M").time()
     trading_end = datetime.strptime("14:00", "%H:%M").time()
     is_trading_hours = trading_start <= current_time <= trading_end
 
-    # 檢查歷史資料快取是否需要更新 (每 1 小時檢查一次)
-    need_historical_update = (
-        _tse_cache is None
-        or _otc_cache is None
-        or force_refresh
-        or _last_update is None
-        or (now - _last_update).seconds > 3600  # 1 小時
-    )
-
-    if need_historical_update:
-        print("=" * 60)
-        print("🔄 更新歷史資料...")
-        print("=" * 60)
-
-        # 使用智慧快取機制 (載入歷史資料 + FinLab 成交金額)
-        _tse_cache = get_index_data_smart(api, "TSE", force_refresh=force_refresh)
-        _otc_cache = get_index_data_smart(api, "OTC", force_refresh=force_refresh)
-        _last_update = now
-
-        print("=" * 60)
-        print(f"✅ 歷史資料更新完成! 最後更新時間: {now.strftime('%Y-%m-%d %H:%M:%S')}")
-        print("=" * 60)
-
-    # 如果啟用即時更新 且 在交易時間內,才更新今天的資料
-    if realtime_update and is_trading_hours:
-        print(f"📡 更新即時資料... ({now.strftime('%H:%M:%S')})")
-
-        try:
-            # 取得即時 snapshot
-            tse_contract = api.Contracts.Indexs.TSE.TSE001
-            otc_contract = api.Contracts.Indexs.OTC.OTC101
-            snapshots = api.snapshots([tse_contract, otc_contract])
-
-            today = pd.Timestamp.now().normalize()
-
-            # 更新 TSE
-            tse_snapshot = snapshots[0]
-            if today in _tse_cache.index:
-                _tse_cache.loc[today, "Open"] = tse_snapshot.open
-                _tse_cache.loc[today, "High"] = max(
-                    _tse_cache.loc[today, "High"], tse_snapshot.high
-                )
-                _tse_cache.loc[today, "Low"] = min(
-                    _tse_cache.loc[today, "Low"], tse_snapshot.low
-                )
-                _tse_cache.loc[today, "Close"] = tse_snapshot.close
-                _tse_cache.loc[today, "Amount"] = (
-                    tse_snapshot.total_amount / 1e8
-                )  # 當日成交金額
-            else:
-                # 新增今天的資料
-                _tse_cache.loc[today] = {
-                    "Open": tse_snapshot.open,
-                    "High": tse_snapshot.high,
-                    "Low": tse_snapshot.low,
-                    "Close": tse_snapshot.close,
-                    "Amount": tse_snapshot.total_amount / 1e8,  # 當日成交金額
-                    "DIF": np.nan,
-                    "MACD": np.nan,
-                    "MACD_Hist": np.nan,
-                    "ma5": np.nan,
-                    "ma20": np.nan,
-                    "ma60": np.nan,
-                    "ma120": np.nan,
-                }
-
-            # 🆕 重新計算 TSE 所有技術指標
-            _tse_cache = _recalculate_all_indicators(_tse_cache)
-
-            # 更新 OTC
-            otc_snapshot = snapshots[1]
-            if today in _otc_cache.index:
-                _otc_cache.loc[today, "Open"] = otc_snapshot.open
-                _otc_cache.loc[today, "High"] = max(
-                    _otc_cache.loc[today, "High"], otc_snapshot.high
-                )
-                _otc_cache.loc[today, "Low"] = min(
-                    _otc_cache.loc[today, "Low"], otc_snapshot.low
-                )
-                _otc_cache.loc[today, "Close"] = otc_snapshot.close
-                _otc_cache.loc[today, "Amount"] = (
-                    otc_snapshot.total_amount / 1e8
-                )  # 當日成交金額
-            else:
-                # 新增今天的資料
-                _otc_cache.loc[today] = {
-                    "Open": otc_snapshot.open,
-                    "High": otc_snapshot.high,
-                    "Low": otc_snapshot.low,
-                    "Close": otc_snapshot.close,
-                    "Amount": otc_snapshot.total_amount / 1e8,  # 當日成交金額
-                    "DIF": np.nan,
-                    "MACD": np.nan,
-                    "MACD_Hist": np.nan,
-                    "ma5": np.nan,
-                    "ma20": np.nan,
-                    "ma60": np.nan,
-                    "ma120": np.nan,
-                }
-
-            # 🆕 重新計算 OTC 所有技術指標
-            _otc_cache = _recalculate_all_indicators(_otc_cache)
-
-            print(
-                f"✅ 即時資料更新完成 - TSE: {tse_snapshot.close:.2f}, OTC: {otc_snapshot.close:.2f}"
-            )
-
-        except Exception as e:
-            print(f"⚠️ 即時資料更新失敗: {e}")
-    elif realtime_update and not is_trading_hours:
-        print(
-            f"⏰ 非交易時間 ({now.strftime('%H:%M:%S')}),暫停即時更新 (交易時間: 08:45-14:00)"
-        )
-    else:
-        print(
-            f"ℹ️ 使用快取資料 (上次更新: {_last_update.strftime('%H:%M:%S') if _last_update else 'N/A'})"
+    with _cache_lock:
+        # ============================================
+        # 1️⃣ 檢查是否需要更新歷史資料（每小時一次）
+        # ============================================
+        need_historical = (
+            _tse_cache is None
+            or _otc_cache is None
+            or force_refresh
+            or _last_historical_update is None
+            or (now - _last_historical_update).seconds > HISTORICAL_UPDATE_INTERVAL
         )
 
-    return _tse_cache.copy(), _otc_cache.copy()
+        if need_historical:
+            print("=" * 50)
+            print("🔄 更新歷史資料...")
+            start_time = time.time()
 
+            _tse_cache = get_index_data_smart(api, "TSE", force_refresh=force_refresh)
+            _otc_cache = get_index_data_smart(api, "OTC", force_refresh=force_refresh)
+            _last_historical_update = now
+            _last_realtime_update = now  # 歷史更新時也會更新即時
 
-def _recalculate_indicators(df, today):
-    """
-    重新計算今天的技術指標 (MACD 和均線) - 舊版，保留向後相容
-    """
-    # 計算 MACD (使用最近 50 筆)
-    window_size = min(50, len(df))
-    recent_data = df.tail(window_size)
+            elapsed = time.time() - start_time
+            print(f"✅ 歷史資料更新完成! 耗時: {elapsed:.1f} 秒")
+            print("=" * 50)
 
-    macd_dif, macd_signal, macd_hist = talib.MACD(
-        recent_data["Close"].values, fastperiod=12, slowperiod=26, signalperiod=9
-    )
+            return _tse_cache.copy(), _otc_cache.copy()
 
-    if not np.isnan(macd_dif[-1]):
-        df.loc[today, "DIF"] = macd_dif[-1]
-        df.loc[today, "MACD"] = macd_signal[-1]
-        df.loc[today, "MACD_Hist"] = macd_hist[-1]
+        # ============================================
+        # 2️⃣ 檢查是否需要更新即時資料（每分鐘一次）
+        # ============================================
+        need_realtime = (
+            is_trading_hours
+            and _last_realtime_update is not None
+            and (now - _last_realtime_update).seconds > REALTIME_UPDATE_INTERVAL
+        )
 
-    # 計算均線
-    if len(df) >= 5:
-        df.loc[today, "ma5"] = df["Close"].tail(5).mean()
-    if len(df) >= 20:
-        df.loc[today, "ma20"] = df["Close"].tail(20).mean()
-    if len(df) >= 60:
-        df.loc[today, "ma60"] = df["Close"].tail(60).mean()
-    if len(df) >= 120:
-        df.loc[today, "ma120"] = df["Close"].tail(120).mean()
+        if need_realtime:
+            print(f"📡 更新即時資料... ({now.strftime('%H:%M:%S')})")
+
+            try:
+                tse_contract = api.Contracts.Indexs.TSE.TSE001
+                otc_contract = api.Contracts.Indexs.OTC.OTC101
+                snapshots = api.snapshots([tse_contract, otc_contract])
+
+                today = pd.Timestamp.now().normalize()
+
+                # 更新 TSE
+                tse_snap = snapshots[0]
+                if today in _tse_cache.index:
+                    _tse_cache.loc[today, "High"] = max(
+                        _tse_cache.loc[today, "High"], tse_snap.high
+                    )
+                    _tse_cache.loc[today, "Low"] = min(
+                        _tse_cache.loc[today, "Low"], tse_snap.low
+                    )
+                    _tse_cache.loc[today, "Close"] = tse_snap.close
+                    _tse_cache.loc[today, "Amount"] = tse_snap.total_amount / 1e8
+                _tse_cache = _recalculate_today_only(_tse_cache, today)
+
+                # 更新 OTC
+                otc_snap = snapshots[1]
+                if today in _otc_cache.index:
+                    _otc_cache.loc[today, "High"] = max(
+                        _otc_cache.loc[today, "High"], otc_snap.high
+                    )
+                    _otc_cache.loc[today, "Low"] = min(
+                        _otc_cache.loc[today, "Low"], otc_snap.low
+                    )
+                    _otc_cache.loc[today, "Close"] = otc_snap.close
+                    _otc_cache.loc[today, "Amount"] = otc_snap.total_amount / 1e8
+                _otc_cache = _recalculate_today_only(_otc_cache, today)
+
+                _last_realtime_update = now
+                print(
+                    f"✅ 即時更新完成 - TSE: {tse_snap.close:.2f}, OTC: {otc_snap.close:.2f}"
+                )
+
+            except Exception as e:
+                print(f"⚠️ 即時更新失敗: {e}")
+
+        # ============================================
+        # 3️⃣ 直接返回快取（最常見的情況）
+        # ============================================
+        else:
+            if not is_trading_hours:
+                pass  # 非交易時間，安靜地返回快取
+            else:
+                remaining = (
+                    REALTIME_UPDATE_INTERVAL - (now - _last_realtime_update).seconds
+                )
+                # 不印 log，避免刷屏
+
+        return _tse_cache.copy(), _otc_cache.copy()
 
 
 def clear_cache():
-    """清除所有快取 (包括檔案和記憶體)"""
-    global _tse_cache, _otc_cache, _last_update
+    """清除所有快取"""
+    global _tse_cache, _otc_cache, _last_historical_update, _last_realtime_update
 
-    # 清除記憶體快取
-    _tse_cache = None
-    _otc_cache = None
-    _last_update = None
+    with _cache_lock:
+        _tse_cache = None
+        _otc_cache = None
+        _last_historical_update = None
+        _last_realtime_update = None
 
-    # 清除檔案快取
     for cache_file in CACHE_DIR.glob("*.pkl"):
         try:
             cache_file.unlink()
-            print(f"🗑️ 已刪除快取檔案: {cache_file.name}")
+            print(f"🗑️ 已刪除: {cache_file.name}")
         except Exception as e:
-            print(f"⚠️ 刪除快取失敗 {cache_file.name}: {e}")
+            print(f"⚠️ 刪除失敗: {e}")
 
     print("✅ 快取已清除")
-
-
-def get_cached_or_fetch_old(api, force_refresh=False):
-    """
-    取得快取的資料或重新抓取 (舊版,僅記憶體快取)
-
-    保留此函數以維持向後相容性
-    建議使用新的 get_cached_or_fetch() 函數
-
-    Args:
-        api: Shioaji API 實例
-        force_refresh: 是否強制重新抓取
-
-    Returns:
-        tuple: (tse_df, otc_df)
-    """
-    global _tse_cache, _otc_cache, _last_update
-
-    now = datetime.now()
-
-    # 如果沒有快取或超過 1 小時，或強制更新
-    if (
-        _tse_cache is None
-        or _otc_cache is None
-        or force_refresh
-        or (_last_update and (now - _last_update).seconds > 3600)
-    ):
-
-        print("🔄 重新抓取歷史資料...")
-        _tse_cache = get_index_with_macd(api, "TSE", "2024-01-01", "2025-12-01")
-        _otc_cache = get_index_with_macd(api, "OTC", "2024-01-01", "2025-12-01")
-        _last_update = now
-        print("✅ 歷史資料載入完成")
-
-    # 更新即時資料
-    print("📡 更新即時資料...")
-    tse_updated, otc_updated = update_both_indexes_realtime(_tse_cache, _otc_cache, api)
-
-    return tse_updated, otc_updated
