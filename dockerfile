@@ -42,8 +42,8 @@ ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 
 # 啟動指令 - 使用優化的 Gunicorn 設定
-# --workers 2: 2GB RAM 建議用 2 個 worker
+# --workers 1: 2GB RAM 建議用 1 個 worker
 # --threads 2: 每個 worker 2 個 thread
-# --timeout 120: 允許較長的啟動時間（載入資料）
-# --preload: 預先載入應用程式，減少每個 worker 的記憶體使用
-CMD ["gunicorn", "--bind", "0.0.0.0:8050", "--workers", "2", "--threads", "2", "--timeout", "120", "--preload", "app:server"]
+# --timeout 300: 允許較長的啟動時間（載入資料）
+# Dockerfile 最後一行改成
+CMD ["gunicorn", "--bind", "0.0.0.0:8050", "--workers", "1", "--threads", "2", "--timeout", "300", "app:server"]
