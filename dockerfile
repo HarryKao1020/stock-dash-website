@@ -1,10 +1,49 @@
-FROM python:3.10-slim
+# Dockerfile for Dash Financial Dashboard
+FROM python:3.11-slim
 
+# 設定工作目錄
 WORKDIR /app
 
-COPY requirements.txt .
-RUN pip install -r requirements.txt
+# 安裝系統依賴 (TA-Lib 需要)
+RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    wget \
+    make \
+    && rm -rf /var/lib/apt/lists/*
 
+# 安裝 TA-Lib C library
+RUN wget http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz && \
+    tar -xzf ta-lib-0.4.0-src.tar.gz && \
+    cd ta-lib/ && \
+    ./configure --prefix=/usr && \
+    make && \
+    make install && \
+    cd .. && \
+    rm -rf ta-lib ta-lib-0.4.0-src.tar.gz
+
+# 複製 requirements.txt
+COPY requirements.txt .
+
+# 安裝 Python 依賴
+RUN pip install --no-cache-dir -r requirements.txt
+
+# 複製應用程式
 COPY . .
 
-CMD ["gunicorn", "--bind", "0.0.0.0:8050", "app:server"]
+# 建立 cache 目錄
+RUN mkdir -p cache
+
+# 暴露端口
+EXPOSE 8050
+
+# 設定環境變數
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+
+# 啟動指令 - 使用優化的 Gunicorn 設定
+# --workers 2: 2GB RAM 建議用 2 個 worker
+# --threads 2: 每個 worker 2 個 thread
+# --timeout 120: 允許較長的啟動時間（載入資料）
+# --preload: 預先載入應用程式，減少每個 worker 的記憶體使用
+CMD ["gunicorn", "--bind", "0.0.0.0:8050", "--workers", "2", "--threads", "2", "--timeout", "120", "--preload", "app:server"]

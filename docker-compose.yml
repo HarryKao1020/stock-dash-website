@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  dash-app:
+    build: .
+    container_name: dash-financial-dashboard
+    ports:
+      - "8050:8050"
+    environment:
+      - FINLAB_TOKEN=${FINLAB_TOKEN}
+      - API_KEY=${API_KEY}
+      - SECRET_KEY=${SECRET_KEY}
+    volumes:
+      # 持久化快取，避免每次重啟都要重新下載
+      - ./cache:/app/cache
+    restart: unless-stopped
+    # 記憶體限制 - 適合 2GB VPS
+    deploy:
+      resources:
+        limits:
+          memory: 1536M
+        reservations:
+          memory: 512M
+    # 健康檢查
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8050/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s

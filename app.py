@@ -31,6 +31,9 @@ app = Dash(
     suppress_callback_exceptions=True,
 )
 
+# ✅ 為 Gunicorn 提供 WSGI 入口點（必須放在條件判斷外面）
+server = app.server
+
 # 側邊導航列
 sidebar = dbc.Nav(
     [
@@ -99,13 +102,9 @@ app.layout = dbc.Container(
     fluid=True,
 )
 
-
-if os.environ.get("RENDER"):
-    # 部署到 Render
-    server = app.server  # 給 gunicorn 使用
-    if __name__ == "__main__":
-        app.run(debug=False, host="0.0.0.0", port=int(os.environ.get("PORT", 8050)))
-else:
-    # 本地啟動server
-    if __name__ == "__main__":
-        app.run(debug=True)
+# 本地開發時直接執行
+if __name__ == "__main__":
+    # 判斷環境決定 debug 模式
+    debug_mode = os.environ.get("DEBUG", "true").lower() == "true"
+    port = int(os.environ.get("PORT", 8050))
+    app.run(debug=debug_mode, host="0.0.0.0", port=port)

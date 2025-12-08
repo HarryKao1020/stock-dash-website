@@ -9,36 +9,31 @@ from finlab import data
 # 載入環境變數
 dotenv.load_dotenv()
 
-
 # 這裡要替換成自己的FinLab VIP token
 token = os.getenv("FINLAB_TOKEN")
 finlab.login(token)
 
-
 # 取得專案目錄
 PROJECT_DIR = Path(__file__).parent
 
+# 快取目錄（本地和 VPS 都用專案目錄下的 cache）
+CACHE_DIR = PROJECT_DIR / "cache"
+CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
-# 取得快取目錄
+
 def get_cache_dir(subdir: str = "") -> Path:
     """
-    取得快取目錄，自動判斷環境
+    取得快取目錄
 
     Args:
         subdir: 子目錄名稱，例如 "shioaji"
-    """
-    if os.environ.get("RENDER"):
-        base = Path("/tmp/cache")
-    else:
-        base = PROJECT_DIR / "cache"
 
-    cache_dir = base / subdir if subdir else base
+    Returns:
+        Path: 快取目錄路徑
+    """
+    cache_dir = CACHE_DIR / subdir if subdir else CACHE_DIR
     cache_dir.mkdir(parents=True, exist_ok=True)
     return cache_dir
-
-
-# finlab_data 自己用
-CACHE_DIR = get_cache_dir()
 
 
 def get_price_data(field="price:收盤價", cache_hours=24):

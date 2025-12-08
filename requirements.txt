@@ -8,3 +8,4 @@ finlab
 shioaji
 TA-Lib
 gunicorn
+psutil>=5.9.0
