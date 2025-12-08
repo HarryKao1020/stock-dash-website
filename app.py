@@ -13,10 +13,9 @@ sys.path.insert(0, str(PROJECT_DIR))
 
 from finlab_data import finlab_data
 
-# 強制清除舊快取（第一次執行後可以註解掉）
-print("🔄 清除舊快取...")
-finlab_data.refresh()
-print("✅ 快取已清除，重新下載資料中...")
+# 生產環境不要每次啟動都清除快取（浪費時間和 API 額度）
+# 如果需要手動清除，可以刪除 cache 目錄內的檔案
+print("🚀 啟動中，使用現有快取...")
 
 # 測試資料
 print("🧪 app.py 中的資料測試:")

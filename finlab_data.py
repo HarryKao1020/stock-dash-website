@@ -520,12 +520,15 @@ class FinLabData:
         self._disposal_stock = None
         self._noticed_stock = None
 
-        # 清除快取檔案
+        # 清除快取檔案（只刪除檔案，不刪除目錄本身，避免 Docker volume 問題）
         import shutil
 
         if CACHE_DIR.exists():
-            shutil.rmtree(CACHE_DIR)
-            CACHE_DIR.mkdir()
+            for item in CACHE_DIR.iterdir():
+                if item.is_file():
+                    item.unlink()
+                elif item.is_dir():
+                    shutil.rmtree(item)
 
 
 # 建立全域實例
