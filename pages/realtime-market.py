@@ -643,14 +643,15 @@ layout = dbc.Container(
             [
                 dbc.Col(
                     [
-                        html.H1(
+                        html.H2(
                             "📊 即時盤勢分析",
-                            className="text-center mb-4",
-                            style={"color": "#2c3e50", "fontWeight": "bold"},
+                            className="mb-3 text-primary",
                         ),
-                        html.Hr(
-                            style={"border-color": "#00a896", "border-width": "2px"}
+                        html.P(
+                            "抓取即時的大盤櫃買指數,以及過去處置股與警示股數量統計。",
+                            className="text-muted",
                         ),
+                        html.Hr(),
                     ],
                     width=12,
                 )

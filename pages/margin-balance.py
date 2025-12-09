@@ -192,7 +192,11 @@ layout = dbc.Container(
             [
                 dbc.Col(
                     [
-                        html.H2("📊 融資餘額分析", className="mb-4 text-primary"),
+                        html.H2("📊 融資餘額分析", className="mb-3 text-primary"),
+                        html.P(
+                            "融資融卷餘額與維持率變化趨勢,以及買賣超情況。",
+                            className="text-muted",
+                        ),
                         html.Hr(),
                     ],
                     width=12,

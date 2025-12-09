@@ -4,6 +4,8 @@ import dash_bootstrap_components as dbc
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import sys
+import pandas as pd
+import numpy as np
 from pathlib import Path
 
 # 將專案根目錄加入 Python path
@@ -175,27 +177,50 @@ def create_world_indices_comparison(days=365):
     try:
         fig = go.Figure()
 
+        # 🆕 先收集所有指數的資料
+        all_data = {}
         for index_code, info in WORLD_INDICES.items():
             try:
                 df = finlab_data.get_world_index_data(index_code, days=days)
+                if not df.empty:
+                    all_data[index_code] = df["close"]
+            except:
+                continue
 
-                # 🆕 將日期索引轉為字串
-                df.index = df.index.strftime("%Y-%m-%d")
+        if not all_data:
+            raise ValueError("無法取得任何指數資料")
 
-                # 計算相對於第一天的漲跌幅 (%)
-                returns = ((df["close"] / df["close"].iloc[0]) - 1) * 100
+        # 🆕 合併成 DataFrame，自動對齊日期
+        combined_df = pd.DataFrame(all_data)
 
+        # 🆕 前向填充處理缺失值（各國假日不同）
+        combined_df = combined_df.ffill()
+
+        # 🆕 移除仍有 NaN 的列
+        combined_df = combined_df.dropna()
+
+        if combined_df.empty:
+            raise ValueError("對齊後無有效資料")
+
+        # 🆕 計算相對於第一天的漲跌幅 (%)
+        returns_df = ((combined_df / combined_df.iloc[0]) - 1) * 100
+
+        # 🆕 將日期索引轉為字串（現在所有指數共用相同日期）
+        returns_df.index = returns_df.index.strftime("%Y-%m-%d")
+
+        # 逐一加入每個指數的線
+        for index_code, info in WORLD_INDICES.items():
+            if index_code in returns_df.columns:
                 fig.add_trace(
                     go.Scatter(
-                        x=df.index,
-                        y=returns,
+                        x=returns_df.index,
+                        y=returns_df[index_code],
                         mode="lines",
                         name=info["name"],
                         line=dict(width=2, color=info["color"]),
+                        hovertemplate=f'{info["name"]}: %{{y:.2f}}%<extra></extra>',
                     )
                 )
-            except:
-                continue
 
         fig.update_layout(
             title=f"國際指數漲跌幅比較 (近{days}天)",
@@ -213,9 +238,12 @@ def create_world_indices_comparison(days=365):
 
         fig.add_hline(y=0, line_dash="dash", line_color="gray", opacity=0.5)
 
-        # 🆕 使用 category 類型
         fig.update_xaxes(
-            type="category", showgrid=True, gridcolor="rgba(128,128,128,0.2)"
+            type="category",
+            showgrid=True,
+            gridcolor="rgba(128,128,128,0.2)",
+            tickangle=45,
+            nticks=20,  # 限制 x 軸標籤數量
         )
         fig.update_yaxes(showgrid=True, gridcolor="rgba(128,128,128,0.2)")
 
@@ -291,7 +319,7 @@ layout = dbc.Container(
                                         ],
                                         className="text-center",
                                     ),
-                                    href="/market-status",  # 你的頁面路徑
+                                    href="/realtime-market",  # 你的頁面路徑
                                     style={
                                         "textDecoration": "none",
                                         "color": "inherit",
@@ -367,18 +395,25 @@ layout = dbc.Container(
                     [
                         dbc.Card(
                             [
-                                dbc.CardBody(
-                                    [
-                                        html.I(
-                                            className="fas fa-balance-scale fa-3x text-danger mb-3"
-                                        ),
-                                        html.H5("籌碼分析", className="card-title"),
-                                        html.P(
-                                            "融資融券變化追蹤",
-                                            className="card-text text-muted",
-                                        ),
-                                    ],
-                                    className="text-center",
+                                dcc.Link(
+                                    dbc.CardBody(
+                                        [
+                                            html.I(
+                                                className="fas fa-balance-scale fa-3x text-danger mb-3"
+                                            ),
+                                            html.H5("籌碼分析", className="card-title"),
+                                            html.P(
+                                                "融資融券變化追蹤",
+                                                className="card-text text-muted",
+                                            ),
+                                        ],
+                                        className="text-center",
+                                    ),
+                                    href="/margin-balance",  # 你的頁面路徑
+                                    style={
+                                        "textDecoration": "none",
+                                        "color": "inherit",
+                                    },
                                 )
                             ],
                             className="shadow-sm h-100",
@@ -611,7 +646,7 @@ layout = dbc.Container(
                         dbc.Alert(
                             [
                                 html.I(className="fas fa-info-circle me-2"),
-                                "提示:以上為 FinLab 真實數據,包含 60日均線(橘色) 與 120日均線(藍色)。",
+                                "提示:以上為真實數據,若有錯誤請來信:king65210@gmail.com 。",
                             ],
                             color="info",
                             className="text-center",

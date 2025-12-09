@@ -47,7 +47,7 @@ nav_links = [
     {"icon": "fa-th-large", "text": "族群區塊圖", "href": "/treemap"},
     {"icon": "fa-coins", "text": "融資卷餘額/維持率", "href": "/margin-balance"},
     {"icon": "fa-trophy", "text": "市值排行", "href": "/market-value-ranking"},
-    {"icon": "fa-money-bill-wave", "text": "金流排行", "href": "/money-flow"},
+    {"icon": "fa-sack-dollar", "text": "金流排行", "href": "/money-flow"},
 ]
 
 # 桌面版側邊導航列

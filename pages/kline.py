@@ -1,5 +1,6 @@
 import dash
 from dash import html, dcc, callback, Output, Input
+import dash_bootstrap_components as dbc
 import plotly.graph_objects as go
 import pandas as pd
 from plotly.subplots import make_subplots
@@ -22,9 +23,25 @@ stock_list = finlab_data.get_stock_list()
 
 
 # 頁面布局
-layout = html.Div(
+layout = dbc.Container(
     [
-        html.H1("個股K線圖", style={"marginBottom": "30px"}),
+        # 標題區
+        dbc.Row(
+            [
+                dbc.Col(
+                    [
+                        html.H2("📈 個股K線圖", className="mb-3 text-primary"),
+                        html.P(
+                            "查看個股K線走勢與技術分析指標",
+                            className="text-muted",
+                        ),
+                        html.Hr(),
+                    ],
+                    width=12,
+                )
+            ]
+        ),
+        # 控制面板
         html.Div(
             [
                 html.Div(
@@ -83,7 +100,8 @@ layout = html.Div(
             id="stats-info", className="card p-3", style={"backgroundColor": "#f8f9fa"}
         ),
     ],
-    style={"padding": "20px"},
+    fluid=True,
+    className="p-4",
 )
 
 

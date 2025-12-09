@@ -732,7 +732,7 @@ layout = dbc.Container(
                                                             id="days-slider",
                                                             min=1,
                                                             max=90,
-                                                            step=5,
+                                                            step=1,
                                                             value=30,
                                                             marks={
                                                                 5: "5天",
@@ -974,7 +974,7 @@ layout = dbc.Container(
                                                 html.Li(
                                                     [
                                                         html.Strong("產業分布"),
-                                                        ": 顯示「市值排行詳細表」前 50 名股票的產業組成",
+                                                        ": 顯示「市值排行詳細表」前 N 名股票的產業組成",
                                                     ]
                                                 ),
                                             ]

@@ -1,0 +1,217 @@
+/* assets/homepage-style.css */
+
+/* ========================================
+   首頁專屬樣式
+   ======================================== */
+
+/* 標題區域 */
+.homepage-title {
+    color: #2c3e50;
+    font-weight: bold;
+}
+
+.homepage-subtitle {
+    font-size: 1.2rem;
+}
+
+/* 響應式標題 */
+@media (max-width: 767.98px) {
+    .homepage-title {
+        font-size: 1.8rem !important;
+    }
+
+    .homepage-subtitle {
+        font-size: 1rem !important;
+    }
+}
+
+/* ========================================
+   功能卡片區域
+   ======================================== */
+.feature-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    cursor: pointer;
+}
+
+.feature-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+}
+
+.feature-card .card-body {
+    padding: 2rem 1rem;
+}
+
+.feature-card i {
+    transition: transform 0.3s ease;
+}
+
+.feature-card:hover i {
+    transform: scale(1.1);
+}
+
+/* 手機版功能卡片 */
+@media (max-width: 767.98px) {
+    .feature-card .card-body {
+        padding: 1.5rem 0.75rem;
+    }
+
+    .feature-card i {
+        font-size: 2rem !important;
+        margin-bottom: 0.75rem !important;
+    }
+
+    .feature-card h5 {
+        font-size: 0.95rem;
+    }
+
+    .feature-card p {
+        font-size: 0.8rem;
+        margin-bottom: 0 !important;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .feature-card .card-body {
+        padding: 1rem 0.5rem;
+    }
+
+    .feature-card i {
+        font-size: 1.75rem !important;
+        margin-bottom: 0.5rem !important;
+    }
+
+    .feature-card h5 {
+        font-size: 0.9rem;
+    }
+
+    .feature-card p {
+        font-size: 0.75rem;
+        display: none;
+        /* 極小螢幕隱藏描述文字 */
+    }
+}
+
+/* ========================================
+   圖表容器響應式調整
+   ======================================== */
+.chart-container {
+    width: 100%;
+    position: relative;
+}
+
+/* 手機版圖表高度調整 */
+@media (max-width: 767.98px) {
+    .chart-container .js-plotly-plot {
+        height: 350px !important;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .chart-container .js-plotly-plot {
+        height: 300px !important;
+    }
+}
+
+/* ========================================
+   Slider 控制器
+   ======================================== */
+.days-slider-card {
+    background-color: #f8f9fa;
+}
+
+.days-slider-title {
+    font-weight: bold;
+    color: #2c3e50;
+    margin-bottom: 15px;
+}
+
+/* 手機版 Slider */
+@media (max-width: 767.98px) {
+    .days-slider-title {
+        font-size: 1rem;
+        margin-bottom: 10px;
+    }
+
+    .rc-slider-mark-text {
+        font-size: 10px;
+    }
+}
+
+/* ========================================
+   底部提示區域
+   ======================================== */
+.info-alert {
+    border-radius: 8px;
+}
+
+@media (max-width: 767.98px) {
+    .info-alert {
+        font-size: 0.85rem;
+        padding: 0.75rem 1rem;
+    }
+}
+
+/* ========================================
+   國際指數比較圖
+   ======================================== */
+.comparison-chart-card {
+    margin-bottom: 1.5rem;
+}
+
+/* ========================================
+   K線圖卡片
+   ======================================== */
+.kline-chart-card {
+    margin-bottom: 1.5rem;
+}
+
+/* 手機版 K線圖卡片 */
+@media (max-width: 991.98px) {
+    .kline-chart-card {
+        margin-bottom: 1rem;
+    }
+}
+
+/* ========================================
+   圖表內部文字響應式 (透過 Plotly)
+   ======================================== */
+/* 這部分需要在 Python 中動態設定,這裡只是記錄規範 */
+/*
+桌面版 (lg+):
+- title: 16px
+- axis labels: 12px
+- tick labels: 10px
+- legend: 11px
+
+平板版 (md):
+- title: 14px
+- axis labels: 11px
+- tick labels: 9px
+- legend: 10px
+
+手機版 (sm):
+- title: 12px
+- axis labels: 10px
+- tick labels: 8px
+- legend: 9px
+
+極小螢幕 (xs):
+- title: 11px
+- axis labels: 9px
+- tick labels: 7px
+- legend: 8px
+*/
+
+/* ========================================
+   載入動畫
+   ======================================== */
+.loading-spinner {
+    margin: 40px auto;
+}
+
+@media (max-width: 767.98px) {
+    .loading-spinner {
+        margin: 20px auto;
+    }
+}

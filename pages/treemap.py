@@ -1,5 +1,6 @@
 import dash
 from dash import html, dcc, callback, Output, Input
+import dash_bootstrap_components as dbc
 import pandas as pd
 from finlab.plot import plot_tw_stock_treemap
 
@@ -10,10 +11,27 @@ dash.register_page(__name__, path="/treemap", name="產業分類圖")
 today = pd.Timestamp.now().strftime("%Y-%m-%d")
 yesterday = (pd.Timestamp.now() - pd.Timedelta(days=1)).strftime("%Y-%m-%d")
 start_day = (pd.Timestamp.now() - pd.Timedelta(days=30)).strftime("%Y-%m-%d")
+
 # 頁面布局
-layout = html.Div(
+layout = dbc.Container(
     [
-        html.H1("台股產業塊圖", style={"marginBottom": "30px"}),
+        # 標題區
+        dbc.Row(
+            [
+                dbc.Col(
+                    [
+                        html.H2("🗺️ 台股產業塊圖", className="mb-3 text-primary"),
+                        html.P(
+                            "以樹狀圖呈現台股各產業報酬率與市值分布",
+                            className="text-muted",
+                        ),
+                        html.Hr(),
+                    ],
+                    width=12,
+                )
+            ]
+        ),
+        # 控制面板
         html.Div(
             [
                 html.Div(
@@ -195,7 +213,8 @@ layout = html.Div(
             children=[html.Div(id="treemap-container", style={"minHeight": "600px"})],
         ),
     ],
-    style={"padding": "20px"},
+    fluid=True,
+    className="p-4",
 )
 
 
