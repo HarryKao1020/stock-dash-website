@@ -47,17 +47,16 @@ WORLD_INDICES = {
 
 def create_world_index_candlestick(index_code, days=120):
     """
-    創建國際指數 K 線圖(含 MA20 ,MA60, MA120)
-
-    Args:
-        index_code: 指數代碼
-        days: 顯示天數
+    創建國際指數 K 線圖(含 MA20, MA60, MA120)
     """
     try:
         df = finlab_data.get_world_index_data(index_code, days=days)
         index_info = WORLD_INDICES.get(
             index_code, {"name": index_code, "color": "#ef5350"}
         )
+
+        # 🆕 將日期索引轉換為字串格式（用於 category 類型 x 軸）
+        df.index = df.index.strftime("%Y-%m-%d")
 
         # 計算每日漲跌幅
         df["change_pct"] = ((df["close"] - df["open"]) / df["open"] * 100).round(2)
@@ -78,7 +77,7 @@ def create_world_index_candlestick(index_code, days=120):
                 increasing_line_color="#ef5350",
                 decreasing_line_color="#26a69a",
                 hovertext=[
-                    f"日期: {date.strftime('%Y-%m-%d')}<br>"
+                    f"日期: {date}<br>"
                     f"開: {row['open']:.2f}<br>"
                     f"高: {row['high']:.2f}<br>"
                     f"低: {row['low']:.2f}<br>"
@@ -126,19 +125,6 @@ def create_world_index_candlestick(index_code, days=120):
             )
         )
 
-        # 加入隱藏的 trace 用於顯示漲跌幅標註
-        fig.add_trace(
-            go.Scatter(
-                x=df.index,
-                y=df["high"],  # 放在高點上方
-                mode="markers",
-                marker=dict(size=0.1, opacity=0),  # 完全透明
-                showlegend=False,
-                hovertemplate="<extra></extra>",  # 不顯示額外資訊
-                customdata=df[["change_pct", "change"]].values,
-            )
-        )
-
         fig.update_layout(
             title=f'{index_info["name"]} K線圖',
             height=450,
@@ -151,7 +137,6 @@ def create_world_index_candlestick(index_code, days=120):
                 orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1
             ),
             yaxis=dict(hoverformat=".2f"),
-            # 加入 hover 標籤的樣式
             hoverlabel=dict(
                 bgcolor="white",
                 font_size=12,
@@ -159,13 +144,18 @@ def create_world_index_candlestick(index_code, days=120):
             ),
         )
 
-        fig.update_xaxes(showgrid=True, gridcolor="rgba(128,128,128,0.2)")
+        # 🆕 使用 category 類型來自動移除空白日期
+        fig.update_xaxes(
+            type="category",  # 關鍵：使用 category 類型
+            showgrid=True,
+            gridcolor="rgba(128,128,128,0.2)",
+        )
         fig.update_yaxes(showgrid=True, gridcolor="rgba(128,128,128,0.2)")
 
         return fig
 
     except Exception as e:
-        # 如果資料載入失敗,返回錯誤訊息
+        # 錯誤處理...
         fig = go.Figure()
         fig.add_annotation(
             text=f"載入失敗: {str(e)}",
@@ -188,6 +178,10 @@ def create_world_indices_comparison(days=365):
         for index_code, info in WORLD_INDICES.items():
             try:
                 df = finlab_data.get_world_index_data(index_code, days=days)
+
+                # 🆕 將日期索引轉為字串
+                df.index = df.index.strftime("%Y-%m-%d")
+
                 # 計算相對於第一天的漲跌幅 (%)
                 returns = ((df["close"] / df["close"].iloc[0]) - 1) * 100
 
@@ -217,10 +211,12 @@ def create_world_indices_comparison(days=365):
             ),
         )
 
-        # 加上 0% 基準線
         fig.add_hline(y=0, line_dash="dash", line_color="gray", opacity=0.5)
 
-        fig.update_xaxes(showgrid=True, gridcolor="rgba(128,128,128,0.2)")
+        # 🆕 使用 category 類型
+        fig.update_xaxes(
+            type="category", showgrid=True, gridcolor="rgba(128,128,128,0.2)"
+        )
         fig.update_yaxes(showgrid=True, gridcolor="rgba(128,128,128,0.2)")
 
         return fig

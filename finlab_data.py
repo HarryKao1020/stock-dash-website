@@ -388,8 +388,23 @@ class FinLabData:
                 "volume": self.world_index_vol[index_code],
             }
         ).dropna(subset=["close"])
+
         # 將 volume 的 NaN 填充為 0
         df["volume"] = df["volume"].fillna(0)
+
+        # 🆕 過濾週末和假日（只保留有交易的日期）
+        # 方法 1: 移除週末（週六=5, 週日=6）
+        df = df[df.index.dayofweek < 5]
+
+        # 方法 2: 更嚴格的過濾 - 移除所有 OHLC 都相同的日期（假日）
+        df = df[
+            ~(
+                (df["open"] == df["high"])
+                & (df["high"] == df["low"])
+                & (df["low"] == df["close"])
+                & (df["close"] == 0)
+            )
+        ]
 
         # 只取最近 N 天
         df = df.tail(days)
@@ -428,7 +443,6 @@ class FinLabData:
             df = df[df.index >= start_date]
         if end_date:
             df = df[df.index <= end_date]
-
         return df
 
     def get_margin_data(self):
