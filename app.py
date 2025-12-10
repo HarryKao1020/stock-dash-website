@@ -48,6 +48,7 @@ nav_links = [
     {"icon": "fa-coins", "text": "融資卷餘額/維持率", "href": "/margin-balance"},
     {"icon": "fa-trophy", "text": "市值排行", "href": "/market-value-ranking"},
     {"icon": "fa-sack-dollar", "text": "金流排行", "href": "/money-flow"},
+    {"icon": "fa-chart-bar", "text": "營收排行", "href": "/rev-rank"},
 ]
 
 # 桌面版側邊導航列
@@ -56,7 +57,7 @@ sidebar_desktop = html.Div(
         # Logo/標題區
         html.Div(
             [
-                html.H5("📊 操盤小天地", className="text-primary mb-0 fw-bold"),
+                html.H5("📊 操你的飆股", className="text-primary mb-0 fw-bold"),
             ],
             className="sidebar-header p-3 border-bottom",
         ),

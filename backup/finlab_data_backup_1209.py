@@ -100,11 +100,6 @@ class FinLabData:
         self._disposal_stock = None
         self._noticed_stock = None
 
-        # 🆕 月營收相關資料
-        self._monthly_revenue = None  # 當月營收
-        self._revenue_yoy = None  # 去年同月增減(%)
-        self._revenue_mom = None  # 上月比較增減(%)
-
     @property
     def close(self):
         """收盤價"""
@@ -264,159 +259,6 @@ class FinLabData:
                 "etl:noticed_stock_filter", cache_hours=24
             )
         return self._noticed_stock
-
-    # ==================== 🆕 月營收相關屬性 ====================
-
-    @property
-    def monthly_revenue(self):
-        """當月營收"""
-        if self._monthly_revenue is None:
-            self._monthly_revenue = (
-                get_price_data("monthly_revenue:當月營收", cache_hours=24) * 1000
-            )  # 轉換成千為初始單位
-        return self._monthly_revenue
-
-    @property
-    def revenue_yoy(self):
-        """營收年增率 (去年同月增減%)"""
-        if self._revenue_yoy is None:
-            self._revenue_yoy = get_price_data(
-                "monthly_revenue:去年同月增減(%)", cache_hours=24
-            )
-        return self._revenue_yoy
-
-    @property
-    def revenue_mom(self):
-        """營收月增率 (上月比較增減%)"""
-        if self._revenue_mom is None:
-            self._revenue_mom = get_price_data(
-                "monthly_revenue:上月比較增減(%)", cache_hours=24
-            )
-        return self._revenue_mom
-
-    # ==================== 🆕 月營收相關方法 ====================
-
-    def get_ma_status(self, stock_id):
-        """
-        取得單一股票的均線排列狀態
-
-        Args:
-            stock_id: 股票代號
-
-        Returns:
-            str: 均線排列狀態
-        """
-        try:
-            close = self.close[stock_id].dropna()
-            if len(close) < 60:
-                return "資料不足"
-
-            ma5 = close.rolling(5).mean().iloc[-1]
-            ma20 = close.rolling(20).mean().iloc[-1]
-            ma60 = close.rolling(60).mean().iloc[-1]
-
-            if ma5 > ma20 and ma20 > ma60:
-                return "多頭排列"
-            elif ma5 > ma20 and ma20 < ma60:
-                return "谷底反彈"
-            elif ma5 < ma20 and ma20 < ma60:
-                return "空頭排列"
-            elif ma5 < ma20 and ma20 > ma60:
-                return "短期修正"
-            else:
-                return "盤整"
-
-        except Exception as e:
-            return "N/A"
-
-    def get_revenue_ranking(self, sort_by="yoy", top_n=100):
-        """
-        取得月營收排行資料
-
-        Args:
-            sort_by: 排序依據 ('yoy' 或 'mom')
-            top_n: 取前幾名
-
-        Returns:
-            DataFrame: 月營收排行資料
-        """
-        try:
-            # 取得最新一期的營收資料
-            rev = self.monthly_revenue
-            rev_yoy = self.revenue_yoy
-            rev_mom = self.revenue_mom
-            amount = self.amount
-
-            # 取得最新日期的資料
-            latest_rev_date = rev.index[-1]
-            latest_amount_date = amount.index[-1]
-
-            print(f"📊 營收資料日期: {latest_rev_date}")
-            print(f"📊 成交金額資料日期: {latest_amount_date}")
-
-            # 取得當期營收資料
-            rev_latest = rev.loc[latest_rev_date].dropna()
-            yoy_latest = rev_yoy.loc[latest_rev_date].dropna()
-            mom_latest = rev_mom.loc[latest_rev_date].dropna()
-            amount_latest = amount.loc[latest_amount_date].dropna()
-
-            # 找出共同的股票
-            common_stocks = (
-                rev_latest.index.intersection(yoy_latest.index)
-                .intersection(mom_latest.index)
-                .intersection(amount_latest.index)
-            )
-
-            print(f"📊 共同股票數量: {len(common_stocks)}")
-
-            # 建立結果 DataFrame
-            result_data = []
-
-            for stock_id in common_stocks:
-                try:
-                    result_data.append(
-                        {
-                            "股票代號": stock_id,
-                            "公司名稱": self.get_stock_name(stock_id),
-                            "本月營收(億)": rev_latest[stock_id] / 1e8,
-                            "營收YoY(%)": yoy_latest[stock_id],
-                            "營收MoM(%)": mom_latest[stock_id],
-                            "成交金額(億)": amount_latest[stock_id] / 1e8,
-                            "均線排列": self.get_ma_status(stock_id),
-                        }
-                    )
-                except Exception as e:
-                    continue
-
-            result = pd.DataFrame(result_data)
-
-            if result.empty:
-                return result, latest_rev_date
-
-            # 排序
-            if sort_by == "yoy":
-                result = result.sort_values("營收YoY(%)", ascending=False)
-            elif sort_by == "mom":
-                result = result.sort_values("營收MoM(%)", ascending=False)
-            elif sort_by == "revenue":
-                result = result.sort_values("本月營收(億)", ascending=False)
-            elif sort_by == "amount":
-                result = result.sort_values("成交金額(億)", ascending=False)
-
-            # 取前 N 名
-            result = result.head(top_n).reset_index(drop=True)
-
-            # 加入排名
-            result.insert(0, "排名", range(1, len(result) + 1))
-
-            return result, latest_rev_date
-
-        except Exception as e:
-            print(f"❌ 取得營收排行錯誤: {e}")
-            import traceback
-
-            traceback.print_exc()
-            return pd.DataFrame(), None
 
     def get_disposal_stock_count(self, days=30):
         """
@@ -692,11 +534,6 @@ class FinLabData:
         self._disposal_stock = None
         self._noticed_stock = None
 
-        # 🆕 清除月營收快取
-        self._monthly_revenue = None
-        self._revenue_yoy = None
-        self._revenue_mom = None
-
         # 清除快取檔案（只刪除檔案，不刪除目錄本身，避免 Docker volume 問題）
         import shutil
 
@@ -761,9 +598,3 @@ def get_noticed_stock_count(days=30):
 def get_top_amount_stocks(date_offset=0, top_n=100):
     """快速取得成交金額前 N 名"""
     return finlab_data.get_top_amount_stocks(date_offset, top_n)
-
-
-# 🆕 月營收相關便利函數
-def get_revenue_ranking(sort_by="yoy", top_n=100):
-    """快速取得月營收排行"""
-    return finlab_data.get_revenue_ranking(sort_by, top_n)
