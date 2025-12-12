@@ -72,8 +72,8 @@ def _recalculate_today_only(df, today):
     """
     🆕 只重新計算今天的指標（比重算整個 DataFrame 快很多）
     """
-    # MACD - 只用最近 50 筆計算
-    window_size = min(50, len(df))
+    # MACD - 只用最近 180 筆計算
+    window_size = min(180, len(df))
     recent_close = df["Close"].tail(window_size).values
 
     macd_dif, macd_signal, macd_hist = talib.MACD(

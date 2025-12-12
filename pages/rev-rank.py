@@ -50,15 +50,14 @@ def create_revenue_yoy_chart(df, top_n=30):
     # 顏色: 正數紅色，負數綠色
     colors = ["#ef5350" if x >= 0 else "#26a69a" for x in display_df["營收YoY(%)"]]
 
-    # 🆕 文字位置: 負數或超過1000%的顯示在內部，其他顯示在外部
+    # 🆕 文字位置: 負數或超過100%的顯示在內部，其他顯示在外部
     text_positions = [
-        "inside" if (x < 0 or x >= 1000) else "outside"
-        for x in display_df["營收YoY(%)"]
+        "inside" if (x < 0 or x >= 100) else "outside" for x in display_df["營收YoY(%)"]
     ]
 
     # 🆕 文字顏色: 內部用白色，外部用深色
     text_colors = [
-        "white" if (x < 0 or x >= 1000) else "#333" for x in display_df["營收YoY(%)"]
+        "white" if (x < 0 or x >= 100) else "#333" for x in display_df["營收YoY(%)"]
     ]
 
     fig = go.Figure(
@@ -134,15 +133,14 @@ def create_revenue_mom_chart(df, top_n=30):
     # 顏色: 正數紅色，負數綠色
     colors = ["#ef5350" if x >= 0 else "#26a69a" for x in display_df["營收MoM(%)"]]
 
-    # 🆕 文字位置: 負數或超過1000%的顯示在內部，其他顯示在外部
+    # 🆕 文字位置: 負數或超過100%的顯示在內部，其他顯示在外部
     text_positions = [
-        "inside" if (x < 0 or x >= 1000) else "outside"
-        for x in display_df["營收MoM(%)"]
+        "inside" if (x < 0 or x >= 100) else "outside" for x in display_df["營收MoM(%)"]
     ]
 
     # 🆕 文字顏色: 內部用白色，外部用深色
     text_colors = [
-        "white" if (x < 0 or x >= 1000) else "#333" for x in display_df["營收MoM(%)"]
+        "white" if (x < 0 or x >= 100) else "#333" for x in display_df["營收MoM(%)"]
     ]
 
     fig = go.Figure(
@@ -243,7 +241,7 @@ def create_ma_distribution_chart(df):
             x=0.5,
             xanchor="center",
         ),
-        height=400,
+        height=500,
         showlegend=True,
         legend=dict(
             orientation="h",
@@ -395,17 +393,6 @@ layout = dbc.Container(
                                         ),
                                         dbc.Row(
                                             [
-                                                dbc.Col(
-                                                    [
-                                                        dbc.Button(
-                                                            "🔄 更新資料",
-                                                            id="rev-update-btn",
-                                                            color="primary",
-                                                            className="w-100",
-                                                        ),
-                                                    ],
-                                                    width=3,
-                                                ),
                                                 dbc.Col(
                                                     [
                                                         html.Div(
@@ -572,7 +559,7 @@ layout = dbc.Container(
                                             ]
                                         ),
                                     ],
-                                    className="shadow-sm mb-4 h-100",
+                                    className="shadow-sm mb-4",
                                 )
                             ],
                             width=6,
@@ -671,14 +658,13 @@ layout = dbc.Container(
         Output("rev-data-date", "children"),
     ],
     [
-        Input("rev-update-btn", "n_clicks"),
         Input("rev-sort-by", "value"),
         Input("rev-top-n-slider", "value"),
         Input("rev-chart-n-slider", "value"),
     ],
     prevent_initial_call=False,
 )
-def update_revenue_ranking(n_clicks, sort_by, top_n, chart_n):
+def update_revenue_ranking(sort_by, top_n, chart_n):
     """更新月營收排行"""
     try:
         print(f"\n{'='*60}")

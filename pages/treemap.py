@@ -104,12 +104,6 @@ layout = dbc.Container(
                     ],
                     style={"marginRight": "20px"},
                 ),
-                html.Button(
-                    "🔄 更新圖表",
-                    id="treemap-refresh-btn",
-                    n_clicks=0,
-                    className="btn btn-primary",
-                ),
             ],
             style={
                 "display": "flex",
@@ -229,7 +223,6 @@ layout = dbc.Container(
         Input("clip-min", "value"),
         Input("clip-max", "value"),
         Input("adjust-price-checkbox", "value"),
-        Input("treemap-refresh-btn", "n_clicks"),
     ],
 )
 def update_treemap(
@@ -241,7 +234,6 @@ def update_treemap(
     clip_min,
     clip_max,
     adjust_price,
-    n_clicks,
 ):
     try:
         # 檢查日期有效性

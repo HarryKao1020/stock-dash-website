@@ -648,7 +648,7 @@ layout = dbc.Container(
                             className="mb-3 text-primary",
                         ),
                         html.P(
-                            "抓取即時的大盤櫃買指數,以及過去處置股與警示股數量統計。",
+                            "抓取即時的大盤櫃買指數(每30秒自動更新),以及過去處置股與警示股數量統計。",
                             className="text-muted",
                         ),
                         html.Hr(),
@@ -657,7 +657,7 @@ layout = dbc.Container(
                 )
             ]
         ),
-        # 自動更新控制
+        # 最後更新時間顯示
         dbc.Row(
             [
                 dbc.Col(
@@ -666,46 +666,13 @@ layout = dbc.Container(
                             [
                                 dbc.CardBody(
                                     [
-                                        html.Div(
-                                            [
-                                                html.Label(
-                                                    "自動更新間隔（秒）:",
-                                                    style={
-                                                        "fontWeight": "bold",
-                                                        "marginRight": "10px",
-                                                    },
-                                                ),
-                                                dcc.Input(
-                                                    id="update-interval-input",
-                                                    type="number",
-                                                    value=30,  # 改成 30 秒
-                                                    min=10,
-                                                    max=300,
-                                                    step=10,
-                                                    style={
-                                                        "width": "100px",
-                                                        "marginRight": "20px",
-                                                    },
-                                                ),
-                                                dbc.Button(
-                                                    "🔄 立即更新",
-                                                    id="manual-update-btn",
-                                                    color="primary",
-                                                    size="sm",
-                                                ),
-                                                html.Span(
-                                                    id="last-update-time",
-                                                    style={
-                                                        "marginLeft": "20px",
-                                                        "color": "#666",
-                                                    },
-                                                ),
-                                            ],
+                                        html.Span(
+                                            id="last-update-time",
                                             style={
-                                                "display": "flex",
-                                                "alignItems": "center",
+                                                "color": "#666",
+                                                "fontSize": "0.9rem",
                                             },
-                                        )
+                                        ),
                                     ]
                                 )
                             ],
@@ -718,7 +685,7 @@ layout = dbc.Container(
         ),
         # 間隔更新組件
         dcc.Interval(
-            id="interval-component", interval=30 * 1000, n_intervals=0  # 預設 30 秒
+            id="interval-component", interval=30 * 1000, n_intervals=0  # 固定 30 秒
         ),
         # 加權指數和櫃買指數並排顯示
         dbc.Row(
@@ -972,19 +939,7 @@ layout = dbc.Container(
 )
 
 
-# Callback: 更新間隔設定
-@callback(
-    Output("interval-component", "interval"),
-    Input("update-interval-input", "value"),
-    prevent_initial_call=False,
-)
-def update_interval(seconds):
-    if seconds is None or seconds < 10:
-        seconds = 60
-    return seconds * 1000
-
-
-# Callback: 更新圖表和分析
+# Callback: 更新圖表和分析 (移除手動更新按鈕的 Input)
 @callback(
     [
         Output("tse-chart", "figure"),
@@ -999,11 +954,10 @@ def update_interval(seconds):
     ],
     [
         Input("interval-component", "n_intervals"),
-        Input("manual-update-btn", "n_clicks"),
     ],
     prevent_initial_call=False,
 )
-def update_all_charts(n_intervals, n_clicks):
+def update_all_charts(n_intervals):
     """
     更新所有圖表和分析
 

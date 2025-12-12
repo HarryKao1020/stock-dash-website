@@ -70,17 +70,11 @@ layout = dbc.Container(
                             start_date=(datetime.now() - timedelta(days=120)).strftime(
                                 "%Y-%m-%d"
                             ),
-                            end_date=pd.Timestamp.now().strftime("%Y-%m-%d"),
+                            end_date=datetime.now().strftime("%Y-%m-%d"),
                             display_format="YYYY-MM-DD",
                         ),
                     ],
                     style={"marginRight": "20px"},
-                ),
-                html.Button(
-                    "🔄 更新資料",
-                    id="refresh-btn",
-                    n_clicks=0,
-                    className="btn btn-primary",
                 ),
             ],
             style={
@@ -114,14 +108,9 @@ layout = dbc.Container(
         Input("stock-selector", "value"),
         Input("date-range", "start_date"),
         Input("date-range", "end_date"),
-        Input("refresh-btn", "n_clicks"),
     ],
 )
-def update_charts(stock_id, start_date, end_date, n_clicks):
-
-    # 如果按了更新按鈕,重新載入資料
-    if n_clicks > 0:
-        finlab_data.refresh()
+def update_charts(stock_id, start_date, end_date):
 
     # 從 finlab_data 取得資料
     df = finlab_data.get_stock_data(stock_id, start_date, end_date)

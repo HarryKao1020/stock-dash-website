@@ -778,12 +778,6 @@ layout = dbc.Container(
                                             ],
                                             className="mb-3",
                                         ),
-                                        dbc.Button(
-                                            "🔄 更新分析",
-                                            id="market-value-update-btn",
-                                            color="primary",
-                                            className="w-100",
-                                        ),
                                     ]
                                 )
                             ],
@@ -1006,14 +1000,13 @@ layout = dbc.Container(
         Output("market-value-table", "children"),
     ],
     [
-        Input("market-value-update-btn", "n_clicks"),
         Input("top-n-slider", "value"),
         Input("days-slider", "value"),
         Input("display-n-slider", "value"),
     ],
     prevent_initial_call=False,
 )
-def update_market_value_analysis(n_clicks, top_n, days, display_n):
+def update_market_value_analysis(top_n, days, display_n):
     """更新市值分析"""
     try:
         print(f"\n{'='*60}")
@@ -1021,7 +1014,6 @@ def update_market_value_analysis(n_clicks, top_n, days, display_n):
         print(f"  - top_n: {top_n}")
         print(f"  - days: {days}")
         print(f"  - display_n: {display_n}")
-        print(f"  - n_clicks: {n_clicks}")
         print(f"{'='*60}")
 
         # 分析市值成長
