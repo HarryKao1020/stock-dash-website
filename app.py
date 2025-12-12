@@ -2,16 +2,15 @@ import dash
 from dash import Dash, html, dcc, callback, Input, Output, State
 import dash_bootstrap_components as dbc
 import os
+from finlab_data import finlab_data, start_auto_refresh
 
 
-# 👇 加入這段
 import sys
 from pathlib import Path
 
 PROJECT_DIR = Path(__file__).parent
 sys.path.insert(0, str(PROJECT_DIR))
 
-from finlab_data import finlab_data
 
 # 生產環境不要每次啟動都清除快取（浪費時間和 API 額度）
 # 如果需要手動清除，可以刪除 cache 目錄內的檔案
@@ -21,6 +20,9 @@ print("🚀 啟動中，使用現有快取...")
 print("🧪 app.py 中的資料測試:")
 test_close = finlab_data.world_index_close
 print(f"   資料日期範圍: {test_close.index.min()} ~ {test_close.index.max()}")
+
+# 定時幾小時清理cache重新抓資料
+start_auto_refresh(interval_hours=4)
 
 # 初始化 Dash app,使用 Bootstrap 主題
 app = Dash(
@@ -217,4 +219,5 @@ if __name__ == "__main__":
     # 判斷環境決定 debug 模式
     debug_mode = os.environ.get("DEBUG", "true").lower() == "true"
     port = int(os.environ.get("PORT", 8050))
+
     app.run(debug=debug_mode, host="0.0.0.0", port=port)

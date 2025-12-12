@@ -3,6 +3,8 @@ from datetime import datetime, timedelta
 import os
 import dotenv
 from pathlib import Path
+import threading
+import atexit
 import finlab
 from finlab import data
 
@@ -19,6 +21,9 @@ PROJECT_DIR = Path(__file__).parent
 # 快取目錄（本地和 VPS 都用專案目錄下的 cache）
 CACHE_DIR = PROJECT_DIR / "cache"
 CACHE_DIR.mkdir(parents=True, exist_ok=True)
+
+# 定時更新設定（預設 2 小時 = 7200 秒）
+AUTO_REFRESH_INTERVAL = 2 * 60 * 60  # 秒
 
 
 def get_cache_dir(subdir: str = "") -> Path:
@@ -74,7 +79,16 @@ def get_price_data(field="price:收盤價", cache_hours=24):
 class FinLabData:
     """FinLab 資料管理類別"""
 
-    def __init__(self):
+    def __init__(
+        self, auto_refresh: bool = False, refresh_interval: int = AUTO_REFRESH_INTERVAL
+    ):
+        """
+        初始化 FinLabData
+
+        Args:
+            auto_refresh: 是否啟用自動定時更新
+            refresh_interval: 更新間隔（秒），預設 2 小時
+        """
         self._close = None
         self._open = None
         self._high = None
@@ -104,6 +118,117 @@ class FinLabData:
         self._monthly_revenue = None  # 當月營收
         self._revenue_yoy = None  # 去年同月增減(%)
         self._revenue_mom = None  # 上月比較增減(%)
+
+        # 定時更新相關
+        self._auto_refresh = auto_refresh
+        self._refresh_interval = refresh_interval
+        self._refresh_timer = None
+        self._is_running = False
+        self._last_refresh_time = None
+
+        # 如果啟用自動更新，則開始定時器
+        if auto_refresh:
+            self.start_auto_refresh()
+
+    # ==================== 定時更新相關方法 ====================
+
+    def start_auto_refresh(self):
+        """啟動自動定時更新"""
+        if self._is_running:
+            print("⚠️ 自動更新已經在運行中")
+            return
+
+        self._is_running = True
+        self._schedule_next_refresh()
+        print(f"✅ 已啟動自動更新，每 {self._refresh_interval / 3600:.1f} 小時更新一次")
+
+        # 註冊程式結束時的清理函數
+        atexit.register(self.stop_auto_refresh)
+
+    def stop_auto_refresh(self):
+        """停止自動定時更新"""
+        self._is_running = False
+        if self._refresh_timer is not None:
+            self._refresh_timer.cancel()
+            self._refresh_timer = None
+        print("🛑 已停止自動更新")
+
+    def _schedule_next_refresh(self):
+        """排程下一次更新"""
+        if not self._is_running:
+            return
+
+        self._refresh_timer = threading.Timer(
+            self._refresh_interval, self._auto_refresh_callback
+        )
+        self._refresh_timer.daemon = True  # 設為 daemon，主程式結束時自動終止
+        self._refresh_timer.start()
+
+        next_time = datetime.now() + timedelta(seconds=self._refresh_interval)
+        print(f"⏰ 下次更新時間: {next_time.strftime('%Y-%m-%d %H:%M:%S')}")
+
+    def _auto_refresh_callback(self):
+        """自動更新的回呼函數"""
+        if not self._is_running:
+            return
+
+        print(f"\n{'='*50}")
+        print(f"🔄 開始自動更新資料 - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        print(f"{'='*50}")
+
+        try:
+            self.refresh()
+            self._last_refresh_time = datetime.now()
+            print(
+                f"✅ 自動更新完成 - {self._last_refresh_time.strftime('%Y-%m-%d %H:%M:%S')}"
+            )
+        except Exception as e:
+            print(f"❌ 自動更新失敗: {e}")
+
+        # 排程下一次更新
+        self._schedule_next_refresh()
+
+    def set_refresh_interval(self, hours: float = 2):
+        """
+        設定更新間隔
+
+        Args:
+            hours: 更新間隔（小時）
+        """
+        self._refresh_interval = int(hours * 3600)
+        print(f"📝 已設定更新間隔為 {hours} 小時")
+
+        # 如果正在運行，重新排程
+        if self._is_running:
+            if self._refresh_timer is not None:
+                self._refresh_timer.cancel()
+            self._schedule_next_refresh()
+
+    def get_refresh_status(self) -> dict:
+        """
+        取得自動更新狀態
+
+        Returns:
+            dict: 包含更新狀態的字典
+        """
+        return {
+            "is_running": self._is_running,
+            "refresh_interval_hours": self._refresh_interval / 3600,
+            "last_refresh_time": (
+                self._last_refresh_time.strftime("%Y-%m-%d %H:%M:%S")
+                if self._last_refresh_time
+                else None
+            ),
+            "next_refresh_time": (
+                (
+                    datetime.now() + timedelta(seconds=self._refresh_timer.interval)
+                ).strftime("%Y-%m-%d %H:%M:%S")
+                if self._refresh_timer and self._is_running
+                else None
+            ),
+        }
+
+    # ==================== 原有的 Property 方法 ====================
 
     @property
     def close(self):
@@ -707,12 +832,17 @@ class FinLabData:
                 elif item.is_dir():
                     shutil.rmtree(item)
 
+        # 更新最後更新時間
+        self._last_refresh_time = datetime.now()
 
-# 建立全域實例
-finlab_data = FinLabData()
+
+# 建立全域實例（預設不啟用自動更新，可手動啟用）
+finlab_data = FinLabData(auto_refresh=False)
 
 
-# 便利函數
+# ==================== 便利函數 ====================
+
+
 def get_close():
     """快速取得收盤價"""
     return finlab_data.close
@@ -767,3 +897,27 @@ def get_top_amount_stocks(date_offset=0, top_n=100):
 def get_revenue_ranking(sort_by="yoy", top_n=100):
     """快速取得月營收排行"""
     return finlab_data.get_revenue_ranking(sort_by, top_n)
+
+
+# ==================== 🆕 自動更新相關便利函數 ====================
+
+
+def start_auto_refresh(interval_hours: float = 2):
+    """
+    啟動自動定時更新
+
+    Args:
+        interval_hours: 更新間隔（小時），預設 2 小時
+    """
+    finlab_data.set_refresh_interval(interval_hours)
+    finlab_data.start_auto_refresh()
+
+
+def stop_auto_refresh():
+    """停止自動定時更新"""
+    finlab_data.stop_auto_refresh()
+
+
+def get_refresh_status():
+    """取得自動更新狀態"""
+    return finlab_data.get_refresh_status()
