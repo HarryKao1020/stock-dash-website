@@ -95,6 +95,7 @@ class FinLabData:
         self._low = None
         self._volume = None
         self._amount = None  # 成交金額
+        # self._change_pct = None # 漲跌幅
         self._company_names = None  # 快取公司名稱
 
         # 融資相關資料
@@ -264,6 +265,13 @@ class FinLabData:
         if self._volume is None:
             self._volume = get_price_data("price:成交股數")
         return self._volume
+
+    @property
+    def change_pct(self):
+        """漲跌幅"""
+        if self._change_pct is None:
+            self._change_pct = self.close - self.close.shift(1)
+        return self._change_pct
 
     @property
     def amount(self):

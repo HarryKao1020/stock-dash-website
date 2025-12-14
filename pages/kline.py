@@ -148,14 +148,14 @@ def update_charts(stock_id, start_date, end_date):
     df["MA60"] = df["close"].rolling(window=60).mean()
     df["MA120"] = df["close"].rolling(window=120).mean()
     df.index = df.index.strftime("%Y-%m-%d")
-    # 成交量顏色(紅跌綠漲)
+    # 成交量顏色(紅漲綠跌)
     colors = []
     for i in range(len(df)):
         try:
             if float(df["close"].iloc[i]) < float(df["open"].iloc[i]):
-                colors.append("red")
-            else:
                 colors.append("green")
+            else:
+                colors.append("red")
         except:
             colors.append("gray")
 
