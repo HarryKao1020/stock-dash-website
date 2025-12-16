@@ -4,6 +4,8 @@ import dash_bootstrap_components as dbc
 import os
 from finlab_data import finlab_data, start_auto_refresh
 from auth import init_auth
+from flask import session, redirect, request
+from flask_login import current_user
 import sys
 from pathlib import Path
 
@@ -41,6 +43,32 @@ app = Dash(
 # ✅ 為 Gunicorn 提供 WSGI 入口點（必須放在條件判斷外面）
 server = app.server
 init_auth(server)
+
+
+# 頁面登入保護
+@server.before_request
+def require_login():
+    """檢查是否需要登入"""
+    # 不需要登入的路徑
+    public_paths = [
+        "/auth/",  # 認證相關路由
+        "/_dash-",  # Dash 內部請求
+        "/assets/",  # 靜態資源
+        "/_reload-hash",  # Dash hot reload
+    ]
+
+    # 檢查是否為公開路徑
+    for path in public_paths:
+        if request.path.startswith(path):
+            return None
+
+    # 檢查環境變數是否啟用登入限制
+    login_required = os.environ.get("LOGIN_REQUIRED", "false").lower() == "true"
+
+    if login_required and not current_user.is_authenticated:
+        # 未登入則導向登入頁
+        return redirect("/auth/login")
+
 
 # 導航連結資料
 nav_links = [

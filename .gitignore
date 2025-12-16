@@ -1,6 +1,7 @@
 # 忽略所有 .log  .env檔案
 *.log
 *.env
+*.db
 
 
 cache/
