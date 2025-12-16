@@ -3,8 +3,7 @@ from dash import Dash, html, dcc, callback, Input, Output, State
 import dash_bootstrap_components as dbc
 import os
 from finlab_data import finlab_data, start_auto_refresh
-
-
+from auth import init_auth
 import sys
 from pathlib import Path
 
@@ -24,6 +23,7 @@ print(f"   資料日期範圍: {test_close.index.min()} ~ {test_close.index.max(
 # 定時幾小時清理cache重新抓資料
 start_auto_refresh(interval_hours=4)
 
+
 # 初始化 Dash app,使用 Bootstrap 主題
 app = Dash(
     __name__,
@@ -40,6 +40,7 @@ app = Dash(
 
 # ✅ 為 Gunicorn 提供 WSGI 入口點（必須放在條件判斷外面）
 server = app.server
+init_auth(server)
 
 # 導航連結資料
 nav_links = [
@@ -59,7 +60,7 @@ sidebar_desktop = html.Div(
         # Logo/標題區
         html.Div(
             [
-                html.H5("📊 操你的飆股", className="text-primary mb-0 fw-bold"),
+                html.H5("📊 Beat Beta", className="text-primary mb-0 fw-bold"),
             ],
             className="sidebar-header p-3 border-bottom",
         ),

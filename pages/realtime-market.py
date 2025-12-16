@@ -510,10 +510,10 @@ def generate_macd_analysis(df, index_name="加權指數"):
             if prev_hist_val is not None and prev_hist_val > 0:
                 # 前一天也是紅柱，比較增長/縮短
                 if hist > prev_hist_val:
-                    growth_text = "↑ 增長"
+                    growth_text = "↑ 增長 (建議:多單部位續抱)"
                     growth_color = "#d32f2f"
                 else:
-                    growth_text = "↓ 縮短"
+                    growth_text = "↓ 縮短 (建議:降低多單部位,去除槓桿)"
                     growth_color = "#ff6f61"
                 analyses.append(
                     html.Li(
@@ -542,7 +542,7 @@ def generate_macd_analysis(df, index_name="加權指數"):
                                 style={"color": "#ef5350", "fontWeight": "bold"},
                             ),
                             html.Span(
-                                " 🔄 綠轉紅",
+                                " 🔄 綠轉紅 (建議:可以開始偏多操作)",
                                 style={
                                     "color": "#ef5350",
                                     "fontWeight": "bold",
@@ -574,10 +574,10 @@ def generate_macd_analysis(df, index_name="加權指數"):
                 # 前一天也是綠柱，比較增長/縮短
                 # 綠柱增長 = hist 更負 (prev_hist_val > hist)
                 if prev_hist_val > hist:
-                    growth_text = "↓ 增長"
+                    growth_text = "↓ 增長 (建議:不要嘗試操底跟買入股票)"
                     growth_color = "#1b5e20"
                 else:
-                    growth_text = "↑ 縮短"
+                    growth_text = "↑ 縮短 (建議:可以嘗試建立一點多單部位)"
                     growth_color = "#4caf50"
                 analyses.append(
                     html.Li(
@@ -606,7 +606,7 @@ def generate_macd_analysis(df, index_name="加權指數"):
                                 style={"color": "#26a69a", "fontWeight": "bold"},
                             ),
                             html.Span(
-                                " 🔄 紅轉綠",
+                                " 🔄 紅轉綠 (建議:出光持股或低水位,暫時遠離盤面)",
                                 style={
                                     "color": "#26a69a",
                                     "fontWeight": "bold",

@@ -275,7 +275,7 @@ layout = dbc.Container(
                         html.Div(
                             [
                                 html.H1(
-                                    "🚀 歡迎來到老高的操盤小天地",
+                                    "🚀 Welcome to Beat Beta!",
                                     className="text-center mb-3",
                                     style={"color": "#2c3e50", "font-weight": "bold"},
                                 ),
