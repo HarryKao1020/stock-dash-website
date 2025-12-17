@@ -40,6 +40,29 @@ app = Dash(
     ],
 )
 
+# 存儲深色模式狀態
+app.clientside_callback(
+    """
+    function(n_clicks) {
+        if (n_clicks) {
+            const isDark = document.body.classList.toggle('dark-mode');
+            localStorage.setItem('darkMode', isDark ? 'true' : 'false');
+            return isDark;
+        }
+        // 初始化時從 localStorage 讀取
+        const savedMode = localStorage.getItem('darkMode');
+        if (savedMode === 'true') {
+            document.body.classList.add('dark-mode');
+            return true;
+        }
+        return false;
+    }
+    """,
+    Output("dark-mode-state", "data"),
+    Input("dark-mode-toggle", "n_clicks"),
+    prevent_initial_call=False,
+)
+
 # ✅ 為 Gunicorn 提供 WSGI 入口點（必須放在條件判斷外面）
 server = app.server
 init_auth(server)
@@ -82,16 +105,65 @@ nav_links = [
     {"icon": "fa-chart-bar", "text": "營收排行", "href": "/rev-rank"},
 ]
 
+# 頂部導航欄 (所有裝置共用)
+top_navbar = dbc.Navbar(
+    dbc.Container(
+        [
+            # 左側區域 (手機版漢堡選單 + Logo)
+            html.Div(
+                [
+                    # 手機版漢堡選單按鈕 (只在 lg 以下顯示)
+                    dbc.Button(
+                        html.I(className="fas fa-bars fa-lg", id="mobile-menu-icon"),
+                        id="mobile-menu-toggler",
+                        className="d-lg-none border-0 p-2 me-2",
+                        style={"background": "transparent"},
+                        n_clicks=0,
+                    ),
+                    # Logo
+                    html.A(
+                        html.Span(
+                            "📊 Beat Beta", className="navbar-brand-text fw-bold fs-5"
+                        ),
+                        href="/",
+                        className="navbar-brand",
+                    ),
+                ],
+                className="d-flex align-items-center",
+            ),
+            # 右側控制區
+            html.Div(
+                [
+                    # 深色模式切換按鈕
+                    dbc.Button(
+                        html.I(id="dark-mode-icon", className="fas fa-moon"),
+                        id="dark-mode-toggle",
+                        color="link",
+                        className="dark-mode-toggle me-3",
+                        n_clicks=0,
+                    ),
+                    # 用戶頭像選單
+                    html.Div(
+                        id="user-menu-container",
+                        className="d-flex align-items-center",
+                    ),
+                ],
+                className="d-flex align-items-center",
+            ),
+        ],
+        fluid=True,
+        className="px-3",
+    ),
+    id="top-navbar",
+    color="dark",
+    dark=True,
+    className="top-navbar fixed-top",
+    style={"height": "60px"},
+)
+
 # 桌面版側邊導航列
 sidebar_desktop = html.Div(
     [
-        # Logo/標題區
-        html.Div(
-            [
-                html.H5("📊 Beat Beta", className="text-primary mb-0 fw-bold"),
-            ],
-            className="sidebar-header p-3 border-bottom",
-        ),
         # 導航連結
         dbc.Nav(
             [
@@ -108,11 +180,12 @@ sidebar_desktop = html.Div(
             ],
             vertical=True,
             pills=True,
-            className="flex-column pt-2",
+            className="flex-column pt-3",
         ),
     ],
     className="sidebar-desktop",
     id="sidebar-desktop",
+    style={"marginTop": "0px"},  # 為頂部導航欄留空間
 )
 
 # 手機版頂部導航列
@@ -180,8 +253,12 @@ sidebar_mobile = dbc.Offcanvas(
 # 主要布局
 app.layout = html.Div(
     [
-        # 手機版導航列
-        navbar_mobile,
+        # 深色模式狀態存儲
+        dcc.Store(id="dark-mode-state", storage_type="local"),
+        # 頂部導航欄
+        top_navbar,
+        # 手機版導航列 (隱藏,改用頂部導航欄)
+        # navbar_mobile,
         # 手機版側邊抽屜
         sidebar_mobile,
         # 主要內容區
@@ -199,7 +276,7 @@ app.layout = html.Div(
                         dbc.Col(
                             html.Div(
                                 dash.page_container,
-                                className="main-content p-3 p-lg-4",
+                                className="main-content p-2 p-lg-4",
                             ),
                             xs=12,
                             lg=10,
@@ -210,16 +287,120 @@ app.layout = html.Div(
                 ),
             ],
             className="main-container",
+            style={"marginTop": "40px"},  # 為頂部導航欄留空間
         ),
     ],
     className="app-wrapper",
 )
 
 
+# Callback: 更新用戶選單
+@callback(
+    Output("user-menu-container", "children"),
+    Input("dark-mode-state", "data"),
+    prevent_initial_call=False,
+)
+def update_user_menu(_):
+    """更新用戶選單顯示"""
+    if current_user.is_authenticated:
+        # 已登入 - 顯示用戶頭像和下拉選單
+        return dbc.DropdownMenu(
+            [
+                dbc.DropdownMenuItem(
+                    [
+                        html.I(className="fas fa-cog me-2"),
+                        "Settings",
+                    ],
+                    href="#",
+                    disabled=True,  # 暫時禁用
+                ),
+                dbc.DropdownMenuItem(divider=True),
+                dbc.DropdownMenuItem(
+                    html.A(
+                        [
+                            html.I(className="fas fa-sign-out-alt me-2"),
+                            "Logout",
+                        ],
+                        href="/auth/logout",
+                        style={"textDecoration": "none", "color": "inherit"},
+                    ),
+                ),
+            ],
+            label=html.Div(
+                [
+                    html.Img(
+                        src=current_user.picture or "https://via.placeholder.com/40",
+                        className="rounded-circle user-avatar-container",
+                        style={
+                            "width": "40px",
+                            "height": "40px",
+                            "objectFit": "cover",
+                        },
+                    ),
+                ],
+                className="d-inline-block",
+            ),
+            nav=True,
+            in_navbar=True,
+            align_end=True,
+            className="user-dropdown",
+            toggle_style={
+                "background": "transparent",
+                "border": "none",
+                "padding": "0",
+            },
+        )
+    else:
+        # 未登入 - 顯示登入按鈕
+        return html.A(
+            dbc.Button(
+                [html.I(className="fas fa-sign-in-alt me-2"), "登入"],
+                color="primary",
+                size="sm",
+            ),
+            href="/auth/login",
+            style={"textDecoration": "none"},
+        )
+
+
+# Callback: 更新深色模式圖標和導航欄樣式
+@callback(
+    [
+        Output("dark-mode-icon", "className"),
+        Output("top-navbar", "color"),
+        Output("top-navbar", "className"),
+        Output("mobile-menu-icon", "style"),
+        Output("dark-mode-toggle", "style"),
+    ],
+    Input("dark-mode-state", "data"),
+    prevent_initial_call=False,
+)
+def update_dark_mode_ui(is_dark):
+    """根據深色模式狀態更新圖標和導航欄樣式"""
+    if is_dark:
+        # 深色模式 - 使用深色導航欄
+        return (
+            "fas fa-sun",  # 圖標變成太陽
+            "dark",  # 保持深色背景
+            "top-navbar fixed-top navbar-dark-mode",  # 添加深色模式 class
+            {"color": "#f5f5f5"},  # 漢堡選單圖標顏色
+            {"color": "#f5f5f5"},  # 深色模式按鈕顏色
+        )
+    else:
+        # 淺色模式 - 使用淺色導航欄
+        return (
+            "fas fa-moon",  # 圖標變成月亮
+            "light",  # 淺色背景
+            "top-navbar fixed-top navbar-light-mode",  # 添加淺色模式 class
+            {"color": "#333"},  # 漢堡選單圖標顏色
+            {"color": "#333"},  # 深色模式按鈕顏色
+        )
+
+
 # Callback: 切換手機版側邊選單
 @callback(
     Output("sidebar-mobile", "is_open"),
-    [Input("navbar-toggler", "n_clicks")]
+    [Input("mobile-menu-toggler", "n_clicks")]
     + [Input(f"mobile-link-{i}", "n_clicks") for i in range(len(nav_links))],
     [State("sidebar-mobile", "is_open")],
     prevent_initial_call=True,
@@ -233,7 +414,7 @@ def toggle_sidebar(toggler_clicks, *args):
     trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
 
     # 如果是漢堡按鈕，切換開關
-    if trigger_id == "navbar-toggler":
+    if trigger_id == "mobile-menu-toggler":
         return not args[-1]  # args[-1] 是 is_open state
 
     # 如果是導航連結，關閉選單

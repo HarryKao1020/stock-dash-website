@@ -165,7 +165,7 @@ def create_index_chart_with_macd(df, title="加權指數"):
         height=600,  # 縮小高度以配合並排顯示
         title=dict(
             text=title,
-            font=dict(size=16, color="navy"),  # 標題字體也縮小
+            font=dict(size=16, color="#2c3e50"),
             x=0.5,
             xanchor="center",
         ),
@@ -178,10 +178,13 @@ def create_index_chart_with_macd(df, title="加權指數"):
             y=1.02,
             xanchor="right",
             x=1,
-            font=dict(size=10),  # 圖例字體縮小
+            font=dict(size=10, color="#333"),
         ),
         template="plotly_white",
-        margin=dict(l=40, r=20, t=60, b=40),  # 調整邊距
+        margin=dict(l=40, r=20, t=60, b=40),
+        plot_bgcolor="rgba(0,0,0,0)",
+        paper_bgcolor="rgba(0,0,0,0)",
+        font=dict(color="#333"),
     )
 
     # 🆕 使用 category 類型 x 軸來移除假日空白
@@ -231,7 +234,7 @@ def create_stock_count_chart(count_series, title="股票數量", color="#ff6b6b"
     fig.update_layout(
         title=dict(
             text=title,
-            font=dict(size=16, color="navy"),
+            font=dict(size=16, color="#2c3e50"),
             x=0.5,
             xanchor="center",
             y=0.95,
@@ -244,11 +247,14 @@ def create_stock_count_chart(count_series, title="股票數量", color="#ff6b6b"
         template="plotly_white",
         margin=dict(l=50, r=20, t=80, b=50),
         showlegend=False,
+        plot_bgcolor="rgba(0,0,0,0)",
+        paper_bgcolor="rgba(0,0,0,0)",
+        font=dict(color="#333"),
     )
 
     # 使用 type='category' 來自動移除沒有資料的日期
-    fig.update_xaxes(showgrid=True, gridcolor="rgba(128,128,128,0.2)", type="category")
-    fig.update_yaxes(showgrid=True, gridcolor="rgba(128,128,128,0.2)")
+    fig.update_xaxes(showgrid=True, gridcolor="rgba(128,128,128,0.2)", type="category", tickfont=dict(color="#333"))
+    fig.update_yaxes(showgrid=True, gridcolor="rgba(128,128,128,0.2)", tickfont=dict(color="#333"))
 
     return fig
 
@@ -695,8 +701,7 @@ layout = dbc.Container(
                     [
                         html.H3(
                             "📈 台股加權指數",
-                            className="mb-3",
-                            style={"color": "#1976d2"},
+                            className="mb-3 text-primary",
                         ),
                         dcc.Loading(
                             id="loading-tse",
@@ -714,7 +719,7 @@ layout = dbc.Container(
                                 dbc.CardHeader(
                                     html.H5(
                                         "📊 技術分析",
-                                        style={"color": "#1976d2", "margin": 0},
+                                        className="text-primary mb-0",
                                     )
                                 ),
                                 dbc.CardBody(
@@ -756,7 +761,7 @@ layout = dbc.Container(
                 dbc.Col(
                     [
                         html.H3(
-                            "📈 櫃買指數", className="mb-3", style={"color": "#d32f2f"}
+                            "📈 櫃買指數", className="mb-3 text-danger"
                         ),
                         dcc.Loading(
                             id="loading-otc",
@@ -774,7 +779,7 @@ layout = dbc.Container(
                                 dbc.CardHeader(
                                     html.H5(
                                         "📊 技術分析",
-                                        style={"color": "#d32f2f", "margin": 0},
+                                        className="text-danger mb-0",
                                     )
                                 ),
                                 dbc.CardBody(
@@ -815,17 +820,14 @@ layout = dbc.Container(
             ]
         ),
         # 新增處置股和警示股圖表
-        html.Hr(
-            style={"margin": "40px 0", "border-color": "#00a896", "border-width": "2px"}
-        ),
+        html.Hr(className="hr-primary", style={"margin": "40px 0"}),
         dbc.Row(
             [
                 dbc.Col(
                     [
                         html.H3(
                             "🚨 處置股與警示股統計",
-                            className="text-center mb-4",
-                            style={"color": "#2c3e50", "fontWeight": "bold"},
+                            className="text-center mb-4 title-primary",
                         ),
                     ],
                     width=12,

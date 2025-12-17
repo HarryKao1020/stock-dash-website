@@ -165,21 +165,24 @@ def create_margin_figure(start_date, end_date):
         height=800,
         title={
             "text": "台股大盤融資餘額分析",
-            "font": {"size": 24, "color": "navy"},
+            "font": {"size": 24, "color": "#2c3e50"},
             "x": 0.5,
             "xanchor": "center",
         },
         hovermode="x unified",
         showlegend=True,
+        plot_bgcolor="rgba(0,0,0,0)",
+        paper_bgcolor="rgba(0,0,0,0)",
+        font=dict(color="#333"),
         # Y軸設定
-        yaxis=dict(title="指數", showgrid=False),
-        yaxis2=dict(title="融資維持率"),
-        yaxis3=dict(title="餘額(元)", showgrid=False),
-        yaxis4=dict(title="買賣超(億)"),
-        yaxis5=dict(title="餘額(元)", showgrid=False),
-        yaxis6=dict(title="買賣超(億)"),
+        yaxis=dict(title="指數", showgrid=False, tickfont=dict(color="#333")),
+        yaxis2=dict(title="融資維持率", tickfont=dict(color="#333")),
+        yaxis3=dict(title="餘額(元)", showgrid=False, tickfont=dict(color="#333")),
+        yaxis4=dict(title="買賣超(億)", tickfont=dict(color="#333")),
+        yaxis5=dict(title="餘額(元)", showgrid=False, tickfont=dict(color="#333")),
+        yaxis6=dict(title="買賣超(億)", tickfont=dict(color="#333")),
         # X軸設定 - 第三個子圖加入 rangeslider
-        xaxis3=dict(rangeslider=dict(visible=True), type="date"),
+        xaxis3=dict(rangeslider=dict(visible=True), type="date", tickfont=dict(color="#333")),
     )
 
     return fig

@@ -57,12 +57,13 @@ def create_world_index_candlestick(index_code, days=120):
             index_code, {"name": index_code, "color": "#ef5350"}
         )
 
+        # 計算每日漲跌幅
+        df["change_pct"] = (
+            (df["close"] - df["close"].shift(1)) / df["close"].shift(1) * 100
+        ).round(2)
+        df["change"] = (df["close"] - df["close"].shift(1)).round(2)
         # 🆕 將日期索引轉換為字串格式（用於 category 類型 x 軸）
         df.index = df.index.strftime("%Y-%m-%d")
-
-        # 計算每日漲跌幅
-        df["change_pct"] = ((df["close"] - df["open"]) / df["open"] * 100).round(2)
-        df["change"] = (df["close"] - df["open"]).round(2)
 
         # 創建單一圖表
         fig = go.Figure()
@@ -128,7 +129,10 @@ def create_world_index_candlestick(index_code, days=120):
         )
 
         fig.update_layout(
-            title=f'{index_info["name"]} K線圖',
+            title=dict(
+                text=f'{index_info["name"]} K線圖',
+                font=dict(size=16, color="#2c3e50"),
+            ),
             height=450,
             xaxis_rangeslider_visible=False,
             hovermode="x unified",
@@ -136,14 +140,17 @@ def create_world_index_candlestick(index_code, days=120):
             plot_bgcolor="rgba(0,0,0,0)",
             paper_bgcolor="rgba(0,0,0,0)",
             legend=dict(
-                orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1
+                orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1,
+                font=dict(color="#333"),
             ),
-            yaxis=dict(hoverformat=".2f"),
+            yaxis=dict(hoverformat=".2f", tickfont=dict(color="#333")),
+            xaxis=dict(tickfont=dict(color="#333")),
             hoverlabel=dict(
                 bgcolor="white",
                 font_size=12,
                 font_family="Arial",
             ),
+            font=dict(color="#333"),
         )
 
         # 🆕 使用 category 類型來自動移除空白日期
@@ -276,20 +283,13 @@ layout = dbc.Container(
                             [
                                 html.H1(
                                     "🚀 Welcome to Beat Beta!",
-                                    className="text-center mb-3",
-                                    style={"color": "#2c3e50", "font-weight": "bold"},
+                                    className="text-center mb-3 title-primary",
                                 ),
                                 html.P(
                                     "主要是將有用的數據整理成圖表,方便在同一個網站閱讀",
-                                    className="text-center text-muted mb-4",
-                                    style={"font-size": "1.2rem"},
+                                    className="text-center text-muted mb-4 subtitle-text",
                                 ),
-                                html.Hr(
-                                    style={
-                                        "border-color": "#00a896",
-                                        "border-width": "2px",
-                                    }
-                                ),
+                                html.Hr(className="hr-primary"),
                             ],
                             className="my-4",
                         )
@@ -460,11 +460,7 @@ layout = dbc.Container(
                                             [
                                                 html.H5(
                                                     "📊 K線圖顯示天數控制",
-                                                    style={
-                                                        "font-weight": "bold",
-                                                        "color": "#2c3e50",
-                                                        "margin-bottom": "15px",
-                                                    },
+                                                    className="title-primary mb-3",
                                                 ),
                                                 dcc.Slider(
                                                     id="global-days-slider",
@@ -489,8 +485,7 @@ layout = dbc.Container(
                                     ]
                                 )
                             ],
-                            className="shadow-sm mb-4",
-                            style={"background-color": "#f8f9fa"},
+                            className="shadow-sm mb-4 card-light-bg",
                         )
                     ],
                     width=12,

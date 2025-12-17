@@ -241,68 +241,260 @@ def login_page():
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
         <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
         <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+
             body {
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                background: #0a0a0a;
                 min-height: 100vh;
                 display: flex;
                 align-items: center;
                 justify-content: center;
+                overflow: hidden;
+                position: relative;
             }
-            .login-card {
-                background: white;
-                border-radius: 20px;
-                padding: 40px;
-                box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-                max-width: 400px;
+
+            /* 科技感背景 - 移动的网格线 */
+            .grid-background {
+                position: fixed;
+                top: 0;
+                left: 0;
                 width: 100%;
+                height: 100%;
+                background-image:
+                    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+                background-size: 50px 50px;
+                animation: gridMove 20s linear infinite;
+                z-index: 1;
             }
-            .login-title { color: #333; margin-bottom: 10px; }
-            .login-subtitle { color: #666; margin-bottom: 30px; }
+
+            @keyframes gridMove {
+                0% { transform: translate(0, 0); }
+                100% { transform: translate(50px, 50px); }
+            }
+
+            /* 浮动的数据点 */
+            .data-particles {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                z-index: 2;
+                pointer-events: none;
+            }
+
+            .particle {
+                position: absolute;
+                width: 3px;
+                height: 3px;
+                border-radius: 50%;
+                animation: float 15s infinite;
+            }
+
+            .particle.green {
+                background: rgba(0, 255, 127, 0.6);
+                box-shadow: 0 0 10px rgba(0, 255, 127, 0.8);
+            }
+
+            .particle.red {
+                background: rgba(255, 68, 68, 0.6);
+                box-shadow: 0 0 10px rgba(255, 68, 68, 0.8);
+            }
+
+            @keyframes float {
+                0%, 100% { transform: translate(0, 0) scale(1); opacity: 0; }
+                10% { opacity: 1; }
+                90% { opacity: 1; }
+                100% { transform: translate(var(--tx), var(--ty)) scale(0.5); }
+            }
+
+            /* K线图背景动画 */
+            .candlestick-bg {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                z-index: 3;
+                opacity: 0.15;
+                pointer-events: none;
+            }
+
+            .candle {
+                position: absolute;
+                bottom: 0;
+                width: 3px;
+                background: #888;
+                animation: candleGrow 3s ease-in-out infinite;
+            }
+
+            @keyframes candleGrow {
+                0%, 100% { height: 20%; opacity: 0.3; }
+                50% { height: 60%; opacity: 0.6; }
+            }
+
+            /* 登录卡片 */
+            .login-card {
+                background: rgba(20, 20, 20, 0.95);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                border-radius: 16px;
+                padding: 40px;
+                box-shadow:
+                    0 20px 60px rgba(0, 0, 0, 0.5),
+                    0 0 40px rgba(0, 255, 127, 0.1);
+                max-width: 420px;
+                width: 100%;
+                position: relative;
+                z-index: 10;
+                backdrop-filter: blur(10px);
+            }
+
+            .login-card::before {
+                content: '';
+                position: absolute;
+                top: -1px;
+                left: -1px;
+                right: -1px;
+                bottom: -1px;
+                border-radius: 16px;
+                background: linear-gradient(135deg, rgba(0, 255, 127, 0.2), rgba(255, 68, 68, 0.2));
+                z-index: -1;
+                opacity: 0;
+                transition: opacity 0.3s;
+            }
+
+            .login-card:hover::before {
+                opacity: 1;
+            }
+
+            .login-title {
+                color: #f5f5f5;
+                margin-bottom: 10px;
+                font-weight: 700;
+                letter-spacing: 0.5px;
+            }
+
+            .login-subtitle {
+                color: #999;
+                margin-bottom: 30px;
+                font-size: 0.95rem;
+            }
+
+            /* Google 登录按钮 */
             .btn-google {
-                background: #fff;
-                border: 2px solid #ddd;
-                color: #333;
-                padding: 12px 20px;
+                background: rgba(255, 255, 255, 0.05);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                color: #d15656;
+                padding: 14px 20px;
                 border-radius: 10px;
                 width: 100%;
                 margin-bottom: 15px;
-                transition: all 0.3s;
+                transition: all 0.3s ease;
                 text-decoration: none;
+                font-weight: 500;
+                position: relative;
+                overflow: hidden;
             }
+
+            .btn-google::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: -100%;
+                width: 100%;
+                height: 100%;
+                background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+                transition: left 0.5s;
+            }
+
+            .btn-google:hover::before {
+                left: 100%;
+            }
+
             .btn-google:hover {
-                background: #f8f9fa;
-                border-color: #4285f4;
-                box-shadow: 0 4px 12px rgba(66, 133, 244, 0.3);
+                background: rgba(255, 255, 255, 0.08);
+                border-color: rgba(66, 133, 244, 0.5);
+                color: #fff;
+                box-shadow: 0 4px 20px rgba(66, 133, 244, 0.2);
+                transform: translateY(-2px);
             }
-            /* Google 官方 SVG Logo */
+
             .google-icon {
                 width: 20px;
                 height: 20px;
                 margin-right: 10px;
             }
+
+            /* Facebook 登录按钮 */
             .btn-facebook {
-                background: #1877f2;
-                border: none;
-                color: white;
-                padding: 12px 20px;
+                background: rgba(24, 119, 242, 0.1);
+                border: 1px solid rgba(24, 119, 242, 0.3);
+                color: #5b9df2;
+                padding: 14px 20px;
                 border-radius: 10px;
                 width: 100%;
-                transition: all 0.3s;
+                transition: all 0.3s ease;
                 text-decoration: none;
+                font-weight: 500;
+                position: relative;
+                overflow: hidden;
             }
+
+            .btn-facebook::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: -100%;
+                width: 100%;
+                height: 100%;
+                background: linear-gradient(90deg, transparent, rgba(24, 119, 242, 0.2), transparent);
+                transition: left 0.5s;
+            }
+
+            .btn-facebook:hover::before {
+                left: 100%;
+            }
+
             .btn-facebook:hover {
-                background: #166fe5;
-                color: white;
-                box-shadow: 0 4px 12px rgba(24, 119, 242, 0.4);
+                background: rgba(24, 119, 242, 0.2);
+                border-color: rgba(24, 119, 242, 0.5);
+                color: #fff;
+                box-shadow: 0 4px 20px rgba(24, 119, 242, 0.3);
+                transform: translateY(-2px);
             }
-           
+
+            /* 分隔线 */
+            hr {
+                border: none;
+                height: 1px;
+                background: rgba(255, 255, 255, 0.1);
+                margin: 30px 0;
+            }
+
+            /* 底部文字 */
+            .text-muted {
+                color: #666 !important;
+                font-size: 0.85rem;
+                line-height: 1.5;
+            }
         </style>
     </head>
     <body>
+        <!-- 动画背景层 -->
+        <div class="grid-background"></div>
+        <div class="data-particles" id="particles"></div>
+        <div class="candlestick-bg" id="candlesticks"></div>
+
+        <!-- 登录卡片 -->
         <div class="login-card text-center">
             <h2 class="login-title">Welcome to Beat Beta</h2>
             <p class="login-subtitle">請選擇登入方式</p>
-            
+
             <a href="/auth/google" class="btn btn-google d-flex align-items-center justify-content-center">
                 <svg class="google-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -312,17 +504,67 @@ def login_page():
                 </svg>
                 使用 Google 帳號登入
             </a>
-            
+
             <a href="/auth/facebook" class="btn btn-facebook d-flex align-items-center justify-content-center">
                 <i class="fab fa-facebook-f me-2"></i>
                 使用 Facebook 帳號登入
             </a>
-            
+
             <hr class="my-4">
             <p class="text-muted small">
                 登入即表示您同意我們的服務條款與隱私權政策
             </p>
         </div>
+
+        <script>
+            // 生成浮动数据点 (红绿点代表涨跌)
+            const particlesContainer = document.getElementById('particles');
+            const particleCount = 150;
+
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                particle.className = `particle ${Math.random() > 0.5 ? 'green' : 'red'}`;
+
+                // 随机起始位置
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.top = Math.random() * 100 + '%';
+
+                // 随机移动距离
+                const tx = (Math.random() - 0.5) * 400;
+                const ty = (Math.random() - 0.5) * 400;
+                particle.style.setProperty('--tx', tx + 'px');
+                particle.style.setProperty('--ty', ty + 'px');
+
+                // 随机动画延迟
+                particle.style.animationDelay = Math.random() * 15 + 's';
+                particle.style.animationDuration = (10 + Math.random() * 10) + 's';
+
+                particlesContainer.appendChild(particle);
+            }
+
+            // 生成K线图背景
+            const candlesticksContainer = document.getElementById('candlesticks');
+            const candleCount = 40;
+
+            for (let i = 0; i < candleCount; i++) {
+                const candle = document.createElement('div');
+                candle.className = 'candle';
+
+                // 均匀分布
+                candle.style.left = (i / candleCount * 100) + '%';
+
+                // 随机颜色 (红绿代表涨跌)
+                const color = Math.random() > 0.5 ?
+                    'rgba(0, 255, 127, 0.3)' : 'rgba(255, 68, 68, 0.3)';
+                candle.style.background = color;
+
+                // 随机动画延迟和时长
+                candle.style.animationDelay = Math.random() * 3 + 's';
+                candle.style.animationDuration = (2 + Math.random() * 3) + 's';
+
+                candlesticksContainer.appendChild(candle);
+            }
+        </script>
     </body>
     </html>
     """

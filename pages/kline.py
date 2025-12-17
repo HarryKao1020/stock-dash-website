@@ -91,7 +91,7 @@ layout = dbc.Container(
         ),
         # 統計資訊
         html.Div(
-            id="stats-info", className="card p-3", style={"backgroundColor": "#f8f9fa"}
+            id="stats-info", className="card p-3 card-light-bg"
         ),
     ],
     fluid=True,
@@ -147,6 +147,11 @@ def update_charts(stock_id, start_date, end_date):
     df["MA20"] = df["close"].rolling(window=20).mean()
     df["MA60"] = df["close"].rolling(window=60).mean()
     df["MA120"] = df["close"].rolling(window=120).mean()
+    # 計算每日漲跌幅
+    df["change_pct"] = (
+        (df["close"] - df["close"].shift(1)) / df["close"].shift(1) * 100
+    ).round(2)
+    df["change"] = (df["close"] - df["close"].shift(1)).round(2)
     df.index = df.index.strftime("%Y-%m-%d")
     # 成交量顏色(紅漲綠跌)
     colors = []
@@ -182,6 +187,16 @@ def update_charts(stock_id, start_date, end_date):
             name="K線",
             increasing_line_color="red",
             decreasing_line_color="green",
+            hovertext=[
+                f"日期: {date}<br>"
+                f"開: {row['open']:.2f}<br>"
+                f"高: {row['high']:.2f}<br>"
+                f"低: {row['low']:.2f}<br>"
+                f"收: {row['close']:.2f}<br>"
+                f"<b>漲跌: {row['change']:+.2f} ({row['change_pct']:+.2f}%)</b>"
+                for date, row in df.iterrows()
+            ],
+            hoverinfo="text",
         ),
         row=1,
         col=1,

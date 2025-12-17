@@ -1,0 +1,742 @@
+/* ========================================
+   深色模式樣式 - 參照 auth.py 登入頁面風格
+   ======================================== */
+
+/* 當 body 有 dark-mode class 時套用深色模式 */
+body.dark-mode {
+    background: #0a0a0a;
+    color: #f5f5f5;
+}
+
+/* ========================================
+   頂部導航欄深色模式
+   ======================================== */
+body.dark-mode .top-navbar,
+body.dark-mode .navbar-dark-mode {
+    background: rgba(20, 20, 20, 0.95) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
+}
+
+body.dark-mode .navbar-brand-text {
+    color: #f5f5f5 !important;
+}
+
+/* 深色模式按鈕樣式 */
+body.dark-mode .dark-mode-toggle {
+    color: #f5f5f5 !important;
+}
+
+body.dark-mode .dark-mode-toggle:hover {
+    color: #00ff7f !important;
+}
+
+/* 漢堡選單按鈕深色模式 */
+body.dark-mode #mobile-menu-toggler {
+    color: #f5f5f5 !important;
+}
+
+body.dark-mode #mobile-menu-toggler:hover {
+    background: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* ========================================
+   側邊欄深色模式
+   ======================================== */
+body.dark-mode .sidebar-desktop {
+    background: rgba(20, 20, 20, 0.95);
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+body.dark-mode .sidebar-header {
+    background: rgba(20, 20, 20, 0.95);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+body.dark-mode .sidebar-desktop .nav-link,
+body.dark-mode .sidebar-link {
+    color: #d4d4d4;
+}
+
+body.dark-mode .sidebar-desktop .nav-link:hover,
+body.dark-mode .sidebar-link:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+}
+
+body.dark-mode .sidebar-desktop .nav-link.active,
+body.dark-mode .sidebar-link.active {
+    background: linear-gradient(135deg, rgba(0, 255, 127, 0.2), rgba(0, 200, 100, 0.3));
+    color: #00ff7f;
+    border: 1px solid rgba(0, 255, 127, 0.3);
+}
+
+/* ========================================
+   手機版側邊欄深色模式
+   ======================================== */
+body.dark-mode .offcanvas-mobile {
+    background: rgba(20, 20, 20, 0.98);
+    color: #f5f5f5;
+}
+
+body.dark-mode .mobile-nav-link {
+    color: #d4d4d4;
+}
+
+body.dark-mode .mobile-nav-link:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+}
+
+body.dark-mode .mobile-nav-link.active {
+    background: linear-gradient(135deg, rgba(0, 255, 127, 0.2), rgba(0, 200, 100, 0.3));
+    color: #00ff7f;
+    border: 1px solid rgba(0, 255, 127, 0.3);
+}
+
+/* ========================================
+   主要內容區深色模式
+   ======================================== */
+body.dark-mode .main-content {
+    background: #0a0a0a;
+}
+
+/* ========================================
+   卡片深色模式
+   ======================================== */
+body.dark-mode .card {
+    background: rgba(20, 20, 20, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+body.dark-mode .card:hover {
+    border-color: rgba(0, 255, 127, 0.2);
+    box-shadow: 0 4px 30px rgba(0, 255, 127, 0.1);
+}
+
+body.dark-mode .card-header {
+    background: rgba(30, 30, 30, 0.95);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    color: #f5f5f5;
+}
+
+body.dark-mode .card-body {
+    color: #d4d4d4;
+}
+
+body.dark-mode .card-title,
+body.dark-mode h1,
+body.dark-mode h2,
+body.dark-mode h3,
+body.dark-mode h4,
+body.dark-mode h5,
+body.dark-mode h6 {
+    color: #f5f5f5 !important;
+}
+
+/* 所有文字段落和標籤都使用白色 */
+body.dark-mode p,
+body.dark-mode span,
+body.dark-mode label,
+body.dark-mode div {
+    color: #f5f5f5;
+}
+
+/* text-muted 在暗黑模式下改成淡灰色而非深灰色 */
+body.dark-mode .text-muted {
+    color: #b0b0b0 !important;
+}
+
+/* text-primary, text-success, text-info 等顏色類別保持原有顏色 */
+body.dark-mode .text-primary {
+    color: #5b9df2 !important;
+}
+
+body.dark-mode .text-success {
+    color: #00ff7f !important;
+}
+
+body.dark-mode .text-danger {
+    color: #ff4444 !important;
+}
+
+body.dark-mode .text-warning {
+    color: #ffc107 !important;
+}
+
+body.dark-mode .text-info {
+    color: #5b9df2 !important;
+}
+
+body.dark-mode .text-secondary {
+    color: #b0b0b0 !important;
+}
+
+/* ========================================
+   表格深色模式
+   ======================================== */
+body.dark-mode .table {
+    color: #d4d4d4;
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+body.dark-mode .table thead th {
+    background: rgba(30, 30, 30, 0.95);
+    color: #f5f5f5;
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+body.dark-mode .table tbody tr {
+    border-color: rgba(255, 255, 255, 0.05);
+}
+
+body.dark-mode .table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+body.dark-mode .table td {
+    border-color: rgba(255, 255, 255, 0.05);
+}
+
+body.dark-mode .table-striped tbody tr:nth-of-type(odd) {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+/* ========================================
+   按鈕深色模式
+   ======================================== */
+body.dark-mode .btn-outline-primary {
+    color: #5b9df2;
+    border-color: rgba(66, 133, 244, 0.3);
+}
+
+body.dark-mode .btn-outline-primary:hover {
+    background: rgba(66, 133, 244, 0.2);
+    border-color: rgba(66, 133, 244, 0.5);
+    color: #fff;
+}
+
+body.dark-mode .btn-primary {
+    background: rgba(66, 133, 244, 0.8);
+    border-color: rgba(66, 133, 244, 0.5);
+}
+
+body.dark-mode .btn-primary:hover {
+    background: rgba(66, 133, 244, 1);
+    box-shadow: 0 4px 20px rgba(66, 133, 244, 0.3);
+}
+
+body.dark-mode .btn-secondary {
+    background: rgba(108, 117, 125, 0.8);
+    border-color: rgba(108, 117, 125, 0.5);
+}
+
+body.dark-mode .btn-success {
+    background: rgba(0, 255, 127, 0.2);
+    border-color: rgba(0, 255, 127, 0.3);
+    color: #00ff7f;
+}
+
+body.dark-mode .btn-success:hover {
+    background: rgba(0, 255, 127, 0.3);
+    box-shadow: 0 4px 20px rgba(0, 255, 127, 0.2);
+}
+
+body.dark-mode .btn-danger {
+    background: rgba(255, 68, 68, 0.2);
+    border-color: rgba(255, 68, 68, 0.3);
+    color: #ff4444;
+}
+
+body.dark-mode .btn-danger:hover {
+    background: rgba(255, 68, 68, 0.3);
+    box-shadow: 0 4px 20px rgba(255, 68, 68, 0.2);
+}
+
+/* ========================================
+   表單輸入深色模式
+   ======================================== */
+body.dark-mode .form-control,
+body.dark-mode .form-select {
+    background: rgba(30, 30, 30, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #f5f5f5;
+}
+
+body.dark-mode .form-control:focus,
+body.dark-mode .form-select:focus {
+    background: rgba(40, 40, 40, 0.95);
+    border-color: rgba(0, 255, 127, 0.5);
+    color: #f5f5f5;
+    box-shadow: 0 0 0 0.2rem rgba(0, 255, 127, 0.1);
+}
+
+body.dark-mode .form-control::placeholder {
+    color: #666;
+}
+
+/* ========================================
+   Dropdown 深色模式
+   ======================================== */
+body.dark-mode .dropdown-menu {
+    background: rgba(20, 20, 20, 0.98);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+}
+
+body.dark-mode .dropdown-item {
+    color: #d4d4d4;
+}
+
+body.dark-mode .dropdown-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+}
+
+body.dark-mode .dropdown-divider {
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* ========================================
+   Alert 深色模式
+   ======================================== */
+body.dark-mode .alert {
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+body.dark-mode .alert-info {
+    background: rgba(24, 119, 242, 0.15);
+    color: #5b9df2;
+    border-color: rgba(24, 119, 242, 0.3);
+}
+
+body.dark-mode .alert-success {
+    background: rgba(0, 255, 127, 0.15);
+    color: #00ff7f;
+    border-color: rgba(0, 255, 127, 0.3);
+}
+
+body.dark-mode .alert-warning {
+    background: rgba(255, 193, 7, 0.15);
+    color: #ffc107;
+    border-color: rgba(255, 193, 7, 0.3);
+}
+
+body.dark-mode .alert-danger {
+    background: rgba(255, 68, 68, 0.15);
+    color: #ff4444;
+    border-color: rgba(255, 68, 68, 0.3);
+}
+
+/* ========================================
+   Badge 深色模式
+   ======================================== */
+body.dark-mode .badge {
+    background: rgba(255, 255, 255, 0.1);
+    color: #f5f5f5;
+}
+
+body.dark-mode .badge-success {
+    background: rgba(0, 255, 127, 0.2);
+    color: #00ff7f;
+}
+
+body.dark-mode .badge-danger {
+    background: rgba(255, 68, 68, 0.2);
+    color: #ff4444;
+}
+
+/* ========================================
+   Modal 深色模式
+   ======================================== */
+body.dark-mode .modal-content {
+    background: rgba(20, 20, 20, 0.98);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
+}
+
+body.dark-mode .modal-header {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+body.dark-mode .modal-footer {
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+body.dark-mode .modal-title {
+    color: #f5f5f5;
+}
+
+body.dark-mode .modal-body {
+    color: #d4d4d4;
+}
+
+/* ========================================
+   Plotly 圖表深色模式
+   ======================================== */
+body.dark-mode .js-plotly-plot .plotly {
+    background: rgba(20, 20, 20, 0.95) !important;
+}
+
+body.dark-mode .js-plotly-plot .plotly .bg {
+    fill: rgba(20, 20, 20, 0.95) !important;
+}
+
+/* Plotly 圖表文字顏色 */
+body.dark-mode .js-plotly-plot text {
+    fill: #f5f5f5 !important;
+}
+
+body.dark-mode .js-plotly-plot .gtitle {
+    fill: #f5f5f5 !important;
+}
+
+body.dark-mode .js-plotly-plot .xtitle,
+body.dark-mode .js-plotly-plot .ytitle {
+    fill: #f5f5f5 !important;
+}
+
+/* 強制覆蓋所有 Plotly 圖表元素 */
+body.dark-mode .js-plotly-plot .xtick text,
+body.dark-mode .js-plotly-plot .ytick text,
+body.dark-mode .js-plotly-plot .g-xtitle text,
+body.dark-mode .js-plotly-plot .g-ytitle text,
+body.dark-mode .js-plotly-plot .annotation text,
+body.dark-mode .js-plotly-plot .legend text {
+    fill: #f5f5f5 !important;
+}
+
+/* Plotly 背景和邊框 - 非常激進的覆蓋 */
+body.dark-mode .js-plotly-plot .plot,
+body.dark-mode .js-plotly-plot .plot .bg,
+body.dark-mode .js-plotly-plot .main-svg .bg,
+body.dark-mode .js-plotly-plot svg .bg,
+body.dark-mode .js-plotly-plot rect.bg,
+body.dark-mode .js-plotly-plot .bglayer rect,
+body.dark-mode .js-plotly-plot .gridlayer .crisp,
+body.dark-mode .js-plotly-plot .nsewdrag {
+    fill: rgba(20, 20, 20, 0.95) !important;
+}
+
+/* 圖表容器背景 */
+body.dark-mode .js-plotly-plot {
+    background: rgba(20, 20, 20, 0.95) !important;
+}
+
+body.dark-mode .js-plotly-plot .gridlayer line,
+body.dark-mode .js-plotly-plot .zerolinelayer line {
+    stroke: rgba(255, 255, 255, 0.2) !important;
+}
+
+body.dark-mode .js-plotly-plot .crisp {
+    fill: rgba(20, 20, 20, 0.95) !important;
+}
+
+/* 所有 SVG 元素的背景 */
+body.dark-mode .js-plotly-plot svg,
+body.dark-mode .js-plotly-plot svg > rect {
+    fill: rgba(20, 20, 20, 0.95) !important;
+}
+
+/* 圖表標題 */
+body.dark-mode .js-plotly-plot .g-gtitle text,
+body.dark-mode .js-plotly-plot .gtitle {
+    fill: #f5f5f5 !important;
+}
+
+/* 子圖標題 */
+body.dark-mode .js-plotly-plot .subplot-titles text,
+body.dark-mode .js-plotly-plot .annotation-text {
+    fill: #f5f5f5 !important;
+}
+
+/* ========================================
+   科技感背景效果 (類似登入頁)
+   ======================================== */
+body.dark-mode::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image:
+        linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+    background-size: 50px 50px;
+    z-index: -1;
+    pointer-events: none;
+    opacity: 0.5;
+}
+
+/* ========================================
+   滾動條深色模式
+   ======================================== */
+body.dark-mode ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+body.dark-mode ::-webkit-scrollbar-track {
+    background: rgba(30, 30, 30, 0.5);
+    border-radius: 4px;
+}
+
+body.dark-mode ::-webkit-scrollbar-thumb {
+    background: rgba(100, 100, 100, 0.5);
+    border-radius: 4px;
+}
+
+body.dark-mode ::-webkit-scrollbar-thumb:hover {
+    background: rgba(120, 120, 120, 0.7);
+}
+
+/* ========================================
+   深色模式切換按鈕動畫
+   ======================================== */
+.dark-mode-toggle {
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.dark-mode-toggle::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+    transition: left 0.5s;
+}
+
+.dark-mode-toggle:hover::before {
+    left: 100%;
+}
+
+body.dark-mode .dark-mode-toggle {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+body.dark-mode .dark-mode-toggle:hover {
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 4px 20px rgba(0, 255, 127, 0.1);
+}
+
+/* ========================================
+   用戶頭像選單深色模式
+   ======================================== */
+body.dark-mode .user-avatar-container {
+    border: 2px solid rgba(0, 255, 127, 0.3);
+}
+
+body.dark-mode .user-avatar-container:hover {
+    border-color: rgba(0, 255, 127, 0.5);
+    box-shadow: 0 0 20px rgba(0, 255, 127, 0.2);
+}
+
+/* ========================================
+   強制覆蓋所有可能的深色文字樣式
+   ======================================== */
+/* 覆蓋 inline style 中的深色文字 */
+body.dark-mode [style*="color: #2c3e50"],
+body.dark-mode [style*="color:#2c3e50"],
+body.dark-mode [style*="color: rgb(44, 62, 80)"],
+body.dark-mode [style*="color:rgb(44, 62, 80)"] {
+    color: #f5f5f5 !important;
+}
+
+body.dark-mode [style*="color: #666"],
+body.dark-mode [style*="color:#666"],
+body.dark-mode [style*="color: #333"],
+body.dark-mode [style*="color:#333"],
+body.dark-mode [style*="color: gray"],
+body.dark-mode [style*="color:gray"],
+body.dark-mode [style*="color: grey"],
+body.dark-mode [style*="color:grey"] {
+    color: #b0b0b0 !important;
+}
+
+/* 強制所有文字都使用淺色 */
+body.dark-mode strong,
+body.dark-mode b,
+body.dark-mode i,
+body.dark-mode em,
+body.dark-mode li {
+    color: inherit;
+}
+
+/* 確保列表項目的文字是白色 */
+body.dark-mode ul,
+body.dark-mode ol {
+    color: #f5f5f5;
+}
+
+/* 圖表和卡片中特定樣式的覆蓋 */
+body.dark-mode .card .mb-3,
+body.dark-mode .card .mb-0,
+body.dark-mode .card .mb-2,
+body.dark-mode .card .mt-2,
+body.dark-mode .card .mt-3,
+body.dark-mode .fw-bold {
+    color: #f5f5f5 !important;
+}
+
+/* 特殊狀態文字顏色保持 */
+body.dark-mode [style*="color: red"],
+body.dark-mode [style*="color:red"],
+body.dark-mode [style*="color: #ef5350"],
+body.dark-mode [style*="color:#ef5350"],
+body.dark-mode [style*="color: green"],
+body.dark-mode [style*="color:green"],
+body.dark-mode [style*="color: #26a69a"],
+body.dark-mode [style*="color:#26a69a"] {
+    /* 保持原色不覆蓋 */
+}
+
+/* 確保所有導航欄文字是白色 */
+body.dark-mode .navbar *,
+body.dark-mode nav * {
+    color: #f5f5f5;
+}
+
+/* HR 分隔線 */
+body.dark-mode hr {
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* 進度條和 loading 指示器 */
+body.dark-mode .progress {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+body.dark-mode .spinner-border,
+body.dark-mode .spinner-grow {
+    color: #5b9df2;
+}
+
+/* ========================================
+   自定義樣式類別 (取代 inline styles)
+   ======================================== */
+/* 標題顏色 */
+.title-primary {
+    color: #2c3e50;
+    font-weight: bold;
+}
+
+body.dark-mode .title-primary {
+    color: #5b9df2 !important;
+}
+
+.title-navy {
+    color: navy;
+}
+
+body.dark-mode .title-navy {
+    color: #5b9df2 !important;
+}
+
+/* 卡片背景 */
+.card-light-bg {
+    background-color: #f8f9fa;
+}
+
+body.dark-mode .card-light-bg {
+    background-color: rgba(30, 30, 30, 0.95) !important;
+}
+
+/* 分隔線樣式 */
+.hr-primary {
+    border-color: #00a896;
+    border-width: 2px;
+}
+
+body.dark-mode .hr-primary {
+    border-color: rgba(0, 255, 127, 0.5);
+}
+
+/* 副標題文字 */
+.subtitle-text {
+    font-size: 1.2rem;
+}
+
+body.dark-mode .subtitle-text {
+    color: #b0b0b0 !important;
+}
+
+/* ========================================
+   Dash 特定組件深色模式
+   ======================================== */
+body.dark-mode .Select-control {
+    background: rgba(30, 30, 30, 0.95) !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+    color: #f5f5f5 !important;
+}
+
+body.dark-mode .Select-menu-outer {
+    background: rgba(20, 20, 20, 0.98) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+body.dark-mode .Select-option {
+    background: transparent !important;
+    color: #d4d4d4 !important;
+}
+
+body.dark-mode .Select-option:hover,
+body.dark-mode .Select-option.is-focused {
+    background: rgba(255, 255, 255, 0.08) !important;
+    color: #fff !important;
+}
+
+body.dark-mode .Select-value-label {
+    color: #f5f5f5 !important;
+}
+
+body.dark-mode .Select-placeholder {
+    color: #666 !important;
+}
+
+/* DatePicker 深色模式 */
+body.dark-mode .DateInput_input {
+    background: rgba(30, 30, 30, 0.95);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: #f5f5f5;
+}
+
+body.dark-mode .DateRangePickerInput {
+    background: transparent;
+}
+
+body.dark-mode .CalendarDay {
+    background: rgba(30, 30, 30, 0.95);
+    color: #d4d4d4;
+    border-color: rgba(255, 255, 255, 0.05);
+}
+
+body.dark-mode .CalendarDay:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+}
+
+body.dark-mode .CalendarDay__selected {
+    background: rgba(0, 255, 127, 0.3);
+    color: #00ff7f;
+}
+
+/* ========================================
+   平滑過渡動畫
+   ======================================== */
+body,
+.card,
+.sidebar-desktop,
+.top-navbar,
+.btn,
+.dropdown-menu,
+.modal-content {
+    transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
