@@ -162,18 +162,21 @@ def create_margin_figure(start_date, end_date):
 
     # ========== Layout 設定 ==========
     fig.update_layout(
-        height=800,
+        height=900,  # 🔧 從 800 提高到 900
         title={
             "text": "台股大盤融資餘額分析",
             "font": {"size": 24, "color": "#2c3e50"},
             "x": 0.5,
             "xanchor": "center",
+            "y": 0.98,  # 🔧 標題位置往上移
+            "yanchor": "top",
         },
         hovermode="x unified",
         showlegend=True,
         plot_bgcolor="rgba(0,0,0,0)",
         paper_bgcolor="rgba(0,0,0,0)",
         font=dict(color="#333"),
+        margin=dict(l=50, r=20, t=100, b=50),  # 🔧 上方留更多空間
         # Y軸設定
         yaxis=dict(title="指數", showgrid=False, tickfont=dict(color="#333")),
         yaxis2=dict(title="融資維持率", tickfont=dict(color="#333")),
@@ -206,6 +209,7 @@ layout = dbc.Container(
                 )
             ]
         ),
+        # 日期選擇區 (RWD: 手機版全寬，桌面版適中寬度)
         dbc.Row(
             [
                 dbc.Col(
@@ -288,7 +292,7 @@ layout = dbc.Container(
                                                             className="mb-2",
                                                         ),
                                                     ],
-                                                    width=6,
+                                                    xs=12, sm=6, md=6, lg=6,  # 🔧 RWD
                                                 ),
                                                 dbc.Col(
                                                     [
@@ -305,7 +309,7 @@ layout = dbc.Container(
                                                             className="mb-2",
                                                         ),
                                                     ],
-                                                    width=6,
+                                                    xs=12, sm=6, md=6, lg=6,  # 🔧 RWD
                                                 ),
                                             ]
                                         ),
@@ -321,7 +325,7 @@ layout = dbc.Container(
                             className="mb-4",
                         )
                     ],
-                    width=12,
+                    xs=12, sm=12, md=12, lg=12,  # 🔧 全寬顯示
                 )
             ]
         ),

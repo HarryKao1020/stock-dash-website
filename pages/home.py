@@ -132,15 +132,23 @@ def create_world_index_candlestick(index_code, days=120):
             title=dict(
                 text=f'{index_info["name"]} K線圖',
                 font=dict(size=16, color="#2c3e50"),
+                y=0.98,  # 🔧 標題位置往上移 (接近頂部)
+                x=0.5,  # 🔧 標題置中
+                xanchor="center",
+                yanchor="top",
             ),
-            height=450,
+            height=500,  # 🔧 從 450 提高到 500
             xaxis_rangeslider_visible=False,
             hovermode="x unified",
-            margin=dict(l=50, r=20, t=50, b=50),
+            margin=dict(l=20, r=20, t=80, b=50),  # 🔧 上方留更多空間 (t: 50→80)
             plot_bgcolor="rgba(0,0,0,0)",
             paper_bgcolor="rgba(0,0,0,0)",
             legend=dict(
-                orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1,
+                orientation="h",
+                yanchor="bottom",
+                y=1.02,
+                xanchor="right",
+                x=1,
                 font=dict(color="#333"),
             ),
             yaxis=dict(hoverformat=".2f", tickfont=dict(color="#333")),
@@ -175,7 +183,7 @@ def create_world_index_candlestick(index_code, days=120):
             showarrow=False,
             font=dict(size=16, color="red"),
         )
-        fig.update_layout(height=450)
+        fig.update_layout(height=500)  # 🔧 同步調整為 500
         return fig
 
 
@@ -230,12 +238,19 @@ def create_world_indices_comparison(days=365):
                 )
 
         fig.update_layout(
-            title=f"國際指數漲跌幅比較 (近{days}天)",
+            title=dict(
+                text=f"國際指數漲跌幅比較 (近{days}天)",
+                font=dict(size=16, color="#2c3e50"),
+                y=0.98,  # 🔧 標題位置往上移
+                x=0.5,  # 🔧 標題置中
+                xanchor="center",
+                yanchor="top",
+            ),
             xaxis_title="日期",
             yaxis_title="漲跌幅 (%)",
             hovermode="x unified",
-            height=400,
-            margin=dict(l=50, r=20, t=50, b=50),
+            height=550,  # 🔧 再拉高一點到 550
+            margin=dict(l=20, r=20, t=80, b=50),  # 🔧 上方留更多空間
             plot_bgcolor="rgba(0,0,0,0)",
             paper_bgcolor="rgba(0,0,0,0)",
             legend=dict(
@@ -267,7 +282,7 @@ def create_world_indices_comparison(days=365):
             showarrow=False,
             font=dict(size=16, color="red"),
         )
-        fig.update_layout(height=400)
+        fig.update_layout(height=550)  # 🔧 同步調整錯誤顯示高度
         return fig
 
 
@@ -298,7 +313,7 @@ layout = dbc.Container(
                 )
             ]
         ),
-        # 特色功能卡片
+        # 特色功能卡片 (RWD: 手機版 6, 平板 6, 桌面 3)
         dbc.Row(
             [
                 dbc.Col(
@@ -319,7 +334,7 @@ layout = dbc.Container(
                                         ],
                                         className="text-center",
                                     ),
-                                    href="/realtime-market",  # 你的頁面路徑
+                                    href="/realtime-market",
                                     style={
                                         "textDecoration": "none",
                                         "color": "inherit",
@@ -329,7 +344,11 @@ layout = dbc.Container(
                             className="shadow-sm h-100",
                         )
                     ],
-                    width=3,
+                    xs=6,
+                    sm=6,
+                    md=6,
+                    lg=3,  # 🔧 RWD 斷點
+                    className="mb-3",
                 ),
                 dbc.Col(
                     [
@@ -349,7 +368,7 @@ layout = dbc.Container(
                                         ],
                                         className="text-center",
                                     ),
-                                    href="/kline",  # 你的頁面路徑
+                                    href="/kline",
                                     style={
                                         "textDecoration": "none",
                                         "color": "inherit",
@@ -359,7 +378,11 @@ layout = dbc.Container(
                             className="shadow-sm h-100",
                         )
                     ],
-                    width=3,
+                    xs=6,
+                    sm=6,
+                    md=6,
+                    lg=3,  # 🔧 RWD 斷點
+                    className="mb-3",
                 ),
                 dbc.Col(
                     [
@@ -379,7 +402,7 @@ layout = dbc.Container(
                                         ],
                                         className="text-center",
                                     ),
-                                    href="/treemap",  # 你的頁面路徑
+                                    href="/treemap",
                                     style={
                                         "textDecoration": "none",
                                         "color": "inherit",
@@ -389,7 +412,11 @@ layout = dbc.Container(
                             className="shadow-sm h-100",
                         )
                     ],
-                    width=3,
+                    xs=6,
+                    sm=6,
+                    md=6,
+                    lg=3,  # 🔧 RWD 斷點
+                    className="mb-3",
                 ),
                 dbc.Col(
                     [
@@ -409,7 +436,7 @@ layout = dbc.Container(
                                         ],
                                         className="text-center",
                                     ),
-                                    href="/margin-balance",  # 你的頁面路徑
+                                    href="/margin-balance",
                                     style={
                                         "textDecoration": "none",
                                         "color": "inherit",
@@ -419,10 +446,14 @@ layout = dbc.Container(
                             className="shadow-sm h-100",
                         )
                     ],
-                    width=3,
+                    xs=6,
+                    sm=6,
+                    md=6,
+                    lg=3,  # 🔧 RWD 斷點
+                    className="mb-3",
                 ),
             ],
-            className="mb-5",
+            className="mb-4",
         ),
         # 國際指數比較圖
         dbc.Row(
@@ -492,7 +523,7 @@ layout = dbc.Container(
                 )
             ]
         ),
-        # 國際指數 K 線圖 - 第一排
+        # 國際指數 K 線圖 - 第一排 (RWD: 手機版 12, 桌面版 6)
         dbc.Row(
             [
                 dbc.Col(
@@ -514,7 +545,10 @@ layout = dbc.Container(
                             className="shadow-sm mb-4",
                         )
                     ],
-                    width=6,
+                    xs=12,
+                    sm=12,
+                    md=6,
+                    lg=6,  # 🔧 手機版全寬，桌面版半寬
                 ),
                 dbc.Col(
                     [
@@ -535,11 +569,14 @@ layout = dbc.Container(
                             className="shadow-sm mb-4",
                         )
                     ],
-                    width=6,
+                    xs=12,
+                    sm=12,
+                    md=6,
+                    lg=6,  # 🔧 手機版全寬，桌面版半寬
                 ),
             ]
         ),
-        # 國際指數 K 線圖 - 第二排
+        # 國際指數 K 線圖 - 第二排 (RWD: 手機版 12, 桌面版 6)
         dbc.Row(
             [
                 dbc.Col(
@@ -561,7 +598,10 @@ layout = dbc.Container(
                             className="shadow-sm mb-4",
                         )
                     ],
-                    width=6,
+                    xs=12,
+                    sm=12,
+                    md=6,
+                    lg=6,  # 🔧 手機版全寬，桌面版半寬
                 ),
                 dbc.Col(
                     [
@@ -582,11 +622,14 @@ layout = dbc.Container(
                             className="shadow-sm mb-4",
                         )
                     ],
-                    width=6,
+                    xs=12,
+                    sm=12,
+                    md=6,
+                    lg=6,  # 🔧 手機版全寬，桌面版半寬
                 ),
             ]
         ),
-        # 國際指數 K 線圖 - 第三排
+        # 國際指數 K 線圖 - 第三排 (RWD: 手機版 12, 桌面版 6)
         dbc.Row(
             [
                 dbc.Col(
@@ -608,7 +651,10 @@ layout = dbc.Container(
                             className="shadow-sm mb-4",
                         )
                     ],
-                    width=6,
+                    xs=12,
+                    sm=12,
+                    md=6,
+                    lg=6,  # 🔧 手機版全寬，桌面版半寬
                 ),
                 dbc.Col(
                     [
@@ -629,7 +675,10 @@ layout = dbc.Container(
                             className="shadow-sm mb-4",
                         )
                     ],
-                    width=6,
+                    xs=12,
+                    sm=12,
+                    md=6,
+                    lg=6,  # 🔧 手機版全寬，桌面版半寬
                 ),
             ]
         ),

@@ -194,7 +194,7 @@ navbar_mobile = dbc.Navbar(
         [
             # Logo
             html.A(
-                html.Span("📊 操盤小天地", className="navbar-brand-text fw-bold"),
+                html.Span("📊 Beat Beta", className="navbar-brand-text fw-bold"),
                 href="/",
                 className="navbar-brand",
             ),

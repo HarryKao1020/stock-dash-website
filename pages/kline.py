@@ -41,57 +41,132 @@ layout = dbc.Container(
                 )
             ]
         ),
-        # 控制面板
-        html.Div(
+        # 控制面板 (RWD: 手機版一行一個，桌面版並排)
+        dbc.Row(
             [
-                html.Div(
+                dbc.Col(
                     [
-                        html.Label("選擇股票:", style={"fontWeight": "bold"}),
-                        dcc.Dropdown(
-                            id="stock-selector",
-                            options=[
-                                {
-                                    "label": stock,
-                                    "value": stock.split()[0],
-                                }  # label 顯示完整, value 只取代號
-                                for stock in stock_list
+                        dbc.Card(
+                            [
+                                dbc.CardBody(
+                                    [
+                                        html.H5("🎯 查詢設定", className="card-title"),
+                                        dbc.Row(
+                                            [
+                                                dbc.Col(
+                                                    [
+                                                        html.Label(
+                                                            "選擇股票:",
+                                                            className="fw-bold",
+                                                        ),
+                                                        dcc.Dropdown(
+                                                            id="stock-selector",
+                                                            options=[
+                                                                {
+                                                                    "label": stock,
+                                                                    "value": stock.split()[
+                                                                        0
+                                                                    ],
+                                                                }
+                                                                for stock in stock_list
+                                                            ],
+                                                            value="2330",
+                                                        ),
+                                                    ],
+                                                    xs=12,
+                                                    sm=12,
+                                                    md=6,
+                                                    lg=6,  # 🔧 RWD: 手機版全寬，桌面版半寬
+                                                    className="mb-3",
+                                                ),
+                                                dbc.Col(
+                                                    [
+                                                        html.Label(
+                                                            "日期範圍:",
+                                                            className="fw-bold",
+                                                        ),
+                                                        dcc.DatePickerRange(
+                                                            id="date-range",
+                                                            start_date=(
+                                                                datetime.now()
+                                                                - timedelta(days=120)
+                                                            ).strftime("%Y-%m-%d"),
+                                                            end_date=datetime.now().strftime(
+                                                                "%Y-%m-%d"
+                                                            ),
+                                                            display_format="YYYY-MM-DD",
+                                                            className="w-100",
+                                                        ),
+                                                    ],
+                                                    xs=12,
+                                                    sm=12,
+                                                    md=6,
+                                                    lg=6,  # 🔧 RWD: 手機版全寬，桌面版半寬
+                                                    className="mb-3",
+                                                ),
+                                            ]
+                                        ),
+                                    ]
+                                )
                             ],
-                            value="2330",
-                            style={"width": "300px"},  # 寬度加大以容納名稱
-                        ),
+                            className="mb-4",
+                        )
                     ],
-                    style={"marginRight": "20px"},
-                ),
-                html.Div(
+                    width=12,
+                )
+            ]
+        ),
+        # K線圖和成交量合併在一起 (RWD: 手機版全寬)
+        dbc.Row(
+            [
+                dbc.Col(
                     [
-                        html.Label("日期範圍:", style={"fontWeight": "bold"}),
-                        dcc.DatePickerRange(
-                            id="date-range",
-                            start_date=(datetime.now() - timedelta(days=120)).strftime(
-                                "%Y-%m-%d"
-                            ),
-                            end_date=datetime.now().strftime("%Y-%m-%d"),
-                            display_format="YYYY-MM-DD",
-                        ),
+                        dbc.Card(
+                            [
+                                dbc.CardBody(
+                                    [
+                                        dcc.Loading(
+                                            id="loading-kline",
+                                            type="default",
+                                            children=[
+                                                dcc.Graph(
+                                                    id="candlestick-chart",
+                                                    config={
+                                                        "displayModeBar": True,
+                                                        "displaylogo": False,
+                                                    },
+                                                )
+                                            ],
+                                        )
+                                    ]
+                                )
+                            ],
+                            className="shadow-sm mb-4",
+                        )
                     ],
-                    style={"marginRight": "20px"},
-                ),
-            ],
-            style={
-                "display": "flex",
-                "alignItems": "flex-end",
-                "marginBottom": "30px",
-                "flexWrap": "wrap",
-                "gap": "10px",
-            },
+                    xs=12,
+                    sm=12,
+                    md=12,
+                    lg=12,  # 🔧 RWD: 全寬顯示
+                )
+            ]
         ),
-        # K線圖和成交量合併在一起
-        dcc.Graph(
-            id="candlestick-chart", style={"height": "800px", "marginBottom": "20px"}
-        ),
-        # 統計資訊
-        html.Div(
-            id="stats-info", className="card p-3 card-light-bg"
+        # 統計資訊 (RWD: 手機版全寬)
+        dbc.Row(
+            [
+                dbc.Col(
+                    [
+                        dbc.Card(
+                            [dbc.CardBody([html.Div(id="stats-info")])],
+                            className="shadow-sm card-light-bg",
+                        )
+                    ],
+                    xs=12,
+                    sm=12,
+                    md=12,
+                    lg=12,  # 🔧 RWD: 全寬顯示
+                )
+            ]
         ),
     ],
     fluid=True,
@@ -277,12 +352,30 @@ def update_charts(stock_id, start_date, end_date):
 
     # 更新布局
     fig.update_layout(
-        title=f"{stock_id} 技術分析",
+        title={
+            "text": f"{stock_id} 技術分析",
+            "font": {"size": 20, "color": "#2c3e50"},
+            "x": 0.5,
+            "xanchor": "center",
+            "y": 0.98,  # 🔧 標題位置往上移
+            "yanchor": "top",
+        },
         xaxis_rangeslider_visible=False,
         template="plotly_white",
-        height=800,
+        height=900,  # 🔧 從 800 提高到 900，手機版會更清楚
         hovermode="x unified",
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1,
+            font=dict(size=11, color="#333"),
+        ),
+        margin=dict(l=10, r=10, t=100, b=50),  # 🔧 上方留更多空間
+        plot_bgcolor="rgba(0,0,0,0)",
+        paper_bgcolor="rgba(0,0,0,0)",
+        font=dict(color="#333"),
     )
 
     # 移除假日空白 - 使用 type='category'
@@ -313,85 +406,244 @@ def update_charts(stock_id, start_date, end_date):
 
         stats = html.Div(
             [
-                html.H3("📈 統計資訊", className="mb-3"),
-                html.Div(
+                html.H4("📈 統計資訊", className="mb-4 text-primary"),
+                # 價格統計卡片 (RWD: 手機版一行兩個，桌面版一行多個)
+                dbc.Row(
                     [
-                        html.Div(
+                        dbc.Col(
                             [
-                                html.Strong("最新收盤價: "),
-                                html.Span(
-                                    f"{latest_close:.2f}",
-                                    style={"fontSize": "18px", "color": "#0d6efd"},
-                                ),
+                                html.Div(
+                                    [
+                                        html.Small(
+                                            "最新收盤價", className="text-muted"
+                                        ),
+                                        html.H5(
+                                            f"{latest_close:.2f}",
+                                            className="mb-0 text-primary",
+                                        ),
+                                    ]
+                                )
                             ],
-                            className="mb-2",
+                            xs=6,
+                            sm=4,
+                            md=2,
+                            lg=2,  # 🔧 RWD
+                            className="mb-3",
                         ),
-                        html.Div(
+                        dbc.Col(
                             [
-                                html.Strong("期間最高價: "),
-                                html.Span(f"{max_high:.2f}", style={"color": "green"}),
+                                html.Div(
+                                    [
+                                        html.Small(
+                                            "期間最高價", className="text-muted"
+                                        ),
+                                        html.H5(
+                                            f"{max_high:.2f}",
+                                            className="mb-0 text-success",
+                                        ),
+                                    ]
+                                )
                             ],
-                            className="mb-2",
+                            xs=6,
+                            sm=4,
+                            md=2,
+                            lg=2,  # 🔧 RWD
+                            className="mb-3",
                         ),
-                        html.Div(
+                        dbc.Col(
                             [
-                                html.Strong("期間最低價: "),
-                                html.Span(f"{min_low:.2f}", style={"color": "red"}),
+                                html.Div(
+                                    [
+                                        html.Small(
+                                            "期間最低價", className="text-muted"
+                                        ),
+                                        html.H5(
+                                            f"{min_low:.2f}",
+                                            className="mb-0 text-danger",
+                                        ),
+                                    ]
+                                )
                             ],
-                            className="mb-2",
+                            xs=6,
+                            sm=4,
+                            md=2,
+                            lg=2,  # 🔧 RWD
+                            className="mb-3",
                         ),
-                        html.Div(
+                        dbc.Col(
                             [
-                                html.Strong("平均成交量: "),
-                                html.Span(f"{avg_volume:,.0f}"),
+                                html.Div(
+                                    [
+                                        html.Small(
+                                            "平均成交量", className="text-muted"
+                                        ),
+                                        html.H5(
+                                            f"{avg_volume:,.0f}",
+                                            className="mb-0 text-info",
+                                        ),
+                                    ]
+                                )
                             ],
-                            className="mb-2",
+                            xs=6,
+                            sm=4,
+                            md=2,
+                            lg=2,  # 🔧 RWD
+                            className="mb-3",
                         ),
-                        html.Div(
-                            [html.Strong("資料筆數: "), html.Span(f"{data_count}")],
-                            className="mb-2",
-                        ),
-                        html.Hr(),
-                        html.H5("移動平均線", className="mt-3 mb-2"),
-                        html.Div(
+                        dbc.Col(
                             [
-                                html.Span(
-                                    "MA5: ",
-                                    style={"fontWeight": "bold", "color": "purple"},
-                                ),
-                                html.Span(
-                                    f"{latest_ma5:.2f}" if latest_ma5 else "N/A",
-                                    style={"marginRight": "15px"},
-                                ),
-                                html.Span(
-                                    "MA10: ",
-                                    style={"fontWeight": "bold", "color": "blue"},
-                                ),
-                                html.Span(
-                                    f"{latest_ma10:.2f}" if latest_ma10 else "N/A",
-                                    style={"marginRight": "15px"},
-                                ),
+                                html.Div(
+                                    [
+                                        html.Small("資料筆數", className="text-muted"),
+                                        html.H5(
+                                            f"{data_count}",
+                                            className="mb-0 text-secondary",
+                                        ),
+                                    ]
+                                )
                             ],
+                            xs=6,
+                            sm=4,
+                            md=2,
+                            lg=2,  # 🔧 RWD
+                            className="mb-3",
+                        ),
+                    ]
+                ),
+                html.Hr(),
+                # 移動平均線 (RWD: 手機版一行兩個，桌面版一行多個)
+                html.H5("📊 移動平均線", className="mt-3 mb-3 text-secondary"),
+                dbc.Row(
+                    [
+                        dbc.Col(
+                            [
+                                html.Div(
+                                    [
+                                        html.Span(
+                                            "MA5",
+                                            className="fw-bold",
+                                            style={"color": "purple"},
+                                        ),
+                                        html.Div(
+                                            (
+                                                f"{latest_ma5:.2f}"
+                                                if latest_ma5
+                                                else "N/A"
+                                            ),
+                                            className="fs-6",
+                                        ),
+                                    ]
+                                )
+                            ],
+                            xs=6,
+                            sm=4,
+                            md=2,
+                            lg=2,  # 🔧 RWD
                             className="mb-2",
                         ),
-                        html.Div(
+                        dbc.Col(
                             [
-                                html.Span(
-                                    "MA20: ",
-                                    style={"fontWeight": "bold", "color": "orange"},
-                                ),
-                                html.Span(
-                                    f"{latest_ma20:.2f}" if latest_ma20 else "N/A",
-                                    style={"marginRight": "15px"},
-                                ),
-                                html.Span(
-                                    "MA60: ",
-                                    style={"fontWeight": "bold", "color": "brown"},
-                                ),
-                                html.Span(
-                                    f"{latest_ma60:.2f}" if latest_ma60 else "N/A"
-                                ),
-                            ]
+                                html.Div(
+                                    [
+                                        html.Span(
+                                            "MA10",
+                                            className="fw-bold",
+                                            style={"color": "blue"},
+                                        ),
+                                        html.Div(
+                                            (
+                                                f"{latest_ma10:.2f}"
+                                                if latest_ma10
+                                                else "N/A"
+                                            ),
+                                            className="fs-6",
+                                        ),
+                                    ]
+                                )
+                            ],
+                            xs=6,
+                            sm=4,
+                            md=2,
+                            lg=2,  # 🔧 RWD
+                            className="mb-2",
+                        ),
+                        dbc.Col(
+                            [
+                                html.Div(
+                                    [
+                                        html.Span(
+                                            "MA20",
+                                            className="fw-bold",
+                                            style={"color": "orange"},
+                                        ),
+                                        html.Div(
+                                            (
+                                                f"{latest_ma20:.2f}"
+                                                if latest_ma20
+                                                else "N/A"
+                                            ),
+                                            className="fs-6",
+                                        ),
+                                    ]
+                                )
+                            ],
+                            xs=6,
+                            sm=4,
+                            md=2,
+                            lg=2,  # 🔧 RWD
+                            className="mb-2",
+                        ),
+                        dbc.Col(
+                            [
+                                html.Div(
+                                    [
+                                        html.Span(
+                                            "MA60",
+                                            className="fw-bold",
+                                            style={"color": "brown"},
+                                        ),
+                                        html.Div(
+                                            (
+                                                f"{latest_ma60:.2f}"
+                                                if latest_ma60
+                                                else "N/A"
+                                            ),
+                                            className="fs-6",
+                                        ),
+                                    ]
+                                )
+                            ],
+                            xs=6,
+                            sm=4,
+                            md=2,
+                            lg=2,  # 🔧 RWD
+                            className="mb-2",
+                        ),
+                        dbc.Col(
+                            [
+                                html.Div(
+                                    [
+                                        html.Span(
+                                            "MA120",
+                                            className="fw-bold",
+                                            style={"color": "brown"},
+                                        ),
+                                        html.Div(
+                                            (
+                                                f"{latest_ma120:.2f}"
+                                                if latest_ma120
+                                                else "N/A"
+                                            ),
+                                            className="fs-6",
+                                        ),
+                                    ]
+                                )
+                            ],
+                            xs=6,
+                            sm=4,
+                            md=2,
+                            lg=2,  # 🔧 RWD
+                            className="mb-2",
                         ),
                     ]
                 ),

@@ -108,7 +108,7 @@ def create_index_chart_with_macd(df, title="加權指數"):
 
     # === 第二張圖: 成交金額 ===
     colors = [
-        "#ef5350" if close >= open_ else "#26a69a"
+        "#ef5350" if close >= open_ else "#26a69a"  # 🔧 使用更鮮明的紅色和綠色
         for close, open_ in zip(df["Close"], df["Open"])
     ]
 
@@ -117,7 +117,11 @@ def create_index_chart_with_macd(df, title="加權指數"):
             x=df.index,
             y=df["Amount"],
             name="成交金額",
-            marker_color=colors,
+            marker=dict(
+                color=colors,
+                line=dict(width=0),  # 🔧 移除邊框
+                opacity=0.8,  # 🔧 完全不透明
+            ),
             showlegend=False,
         ),
         row=2,
@@ -150,7 +154,11 @@ def create_index_chart_with_macd(df, title="加權指數"):
             x=df.index,
             y=df["MACD_Hist"],
             name="MACD柱狀體",
-            marker_color=macd_colors,
+            marker=dict(
+                color=macd_colors,
+                line=dict(width=0),  # 🔧 移除邊框
+                opacity=0.8,  # 🔧 完全不透明
+            ),
             showlegend=False,
         ),
         row=3,
@@ -162,12 +170,14 @@ def create_index_chart_with_macd(df, title="加權指數"):
 
     # 更新布局
     fig.update_layout(
-        height=600,  # 縮小高度以配合並排顯示
+        height=650,  # 🔧 從 600 提高到 650
         title=dict(
             text=title,
             font=dict(size=16, color="#2c3e50"),
             x=0.5,
             xanchor="center",
+            y=0.98,  # 🔧 標題位置往上移
+            yanchor="top",
         ),
         xaxis_rangeslider_visible=False,
         hovermode="x unified",
@@ -181,7 +191,7 @@ def create_index_chart_with_macd(df, title="加權指數"):
             font=dict(size=10, color="#333"),
         ),
         template="plotly_white",
-        margin=dict(l=40, r=20, t=60, b=40),
+        margin=dict(l=40, r=20, t=80, b=40),  # 🔧 上方留更多空間 (t: 60→80)
         plot_bgcolor="rgba(0,0,0,0)",
         paper_bgcolor="rgba(0,0,0,0)",
         font=dict(color="#333"),
@@ -253,8 +263,15 @@ def create_stock_count_chart(count_series, title="股票數量", color="#ff6b6b"
     )
 
     # 使用 type='category' 來自動移除沒有資料的日期
-    fig.update_xaxes(showgrid=True, gridcolor="rgba(128,128,128,0.2)", type="category", tickfont=dict(color="#333"))
-    fig.update_yaxes(showgrid=True, gridcolor="rgba(128,128,128,0.2)", tickfont=dict(color="#333"))
+    fig.update_xaxes(
+        showgrid=True,
+        gridcolor="rgba(128,128,128,0.2)",
+        type="category",
+        tickfont=dict(color="#333"),
+    )
+    fig.update_yaxes(
+        showgrid=True, gridcolor="rgba(128,128,128,0.2)", tickfont=dict(color="#333")
+    )
 
     return fig
 
@@ -693,10 +710,9 @@ layout = dbc.Container(
         dcc.Interval(
             id="interval-component", interval=30 * 1000, n_intervals=0  # 固定 30 秒
         ),
-        # 加權指數和櫃買指數並排顯示
+        # 加權指數 (RWD: 手機版全寬，桌面版半寬)
         dbc.Row(
             [
-                # 左側: 加權指數
                 dbc.Col(
                     [
                         html.H3(
@@ -710,7 +726,9 @@ layout = dbc.Container(
                                 dcc.Graph(
                                     id="tse-chart",
                                     config={"displayModeBar": True},
-                                    style={"height": "600px"},
+                                    style={
+                                        "height": "650px"
+                                    },  # 🔧 從 600px 提高到 650px
                                 ),
                             ],
                         ),
@@ -718,7 +736,7 @@ layout = dbc.Container(
                             [
                                 dbc.CardHeader(
                                     html.H5(
-                                        "📊 技術分析",
+                                        "📊 加權指數技術分析",
                                         className="text-primary mb-0",
                                     )
                                 ),
@@ -755,14 +773,19 @@ layout = dbc.Container(
                             className="mb-4",
                         ),
                     ],
-                    width=6,
-                ),  # 左側佔一半
-                # 右側: 櫃買指數
+                    xs=12,
+                    sm=12,
+                    md=6,
+                    lg=6,  # 🔧 RWD: 手機版全寬，桌面版半寬
+                ),
+            ]
+        ),
+        # 櫃買指數 (RWD: 手機版全寬，桌面版半寬)
+        dbc.Row(
+            [
                 dbc.Col(
                     [
-                        html.H3(
-                            "📈 櫃買指數", className="mb-3 text-danger"
-                        ),
+                        html.H3("📈 櫃買指數", className="mb-3 text-danger"),
                         dcc.Loading(
                             id="loading-otc",
                             type="default",
@@ -770,7 +793,9 @@ layout = dbc.Container(
                                 dcc.Graph(
                                     id="otc-chart",
                                     config={"displayModeBar": True},
-                                    style={"height": "600px"},
+                                    style={
+                                        "height": "650px"
+                                    },  # 🔧 從 600px 提高到 650px
                                 ),
                             ],
                         ),
@@ -778,7 +803,7 @@ layout = dbc.Container(
                             [
                                 dbc.CardHeader(
                                     html.H5(
-                                        "📊 技術分析",
+                                        "📊 櫃買指數技術分析",
                                         className="text-danger mb-0",
                                     )
                                 ),
@@ -815,8 +840,11 @@ layout = dbc.Container(
                             className="mb-4",
                         ),
                     ],
-                    width=6,
-                ),  # 右側佔一半
+                    xs=12,
+                    sm=12,
+                    md=6,
+                    lg=6,  # 🔧 RWD: 手機版全寬，桌面版半寬
+                ),
             ]
         ),
         # 新增處置股和警示股圖表
@@ -836,7 +864,7 @@ layout = dbc.Container(
         ),
         dbc.Row(
             [
-                # 左側: 處置股數量
+                # 處置股數量 (RWD: 手機版全寬，桌面版半寬)
                 dbc.Col(
                     [
                         html.H4(
@@ -856,9 +884,13 @@ layout = dbc.Container(
                             ],
                         ),
                     ],
-                    width=6,
+                    xs=12,
+                    sm=12,
+                    md=6,
+                    lg=6,  # 🔧 RWD: 手機版全寬，桌面版半寬
+                    className="mb-4",
                 ),
-                # 右側: 警示股數量
+                # 警示股數量 (RWD: 手機版全寬，桌面版半寬)
                 dbc.Col(
                     [
                         html.H4(
@@ -878,10 +910,13 @@ layout = dbc.Container(
                             ],
                         ),
                     ],
-                    width=6,
+                    xs=12,
+                    sm=12,
+                    md=6,
+                    lg=6,  # 🔧 RWD: 手機版全寬，桌面版半寬
+                    className="mb-4",
                 ),
             ],
-            className="mb-4",
         ),
         # 說明卡片
         dbc.Row(

@@ -144,13 +144,16 @@ def create_growth_ranking_chart(df, days=30, display_n=20, top_n=300):
             yaxis_title="",
             height=max(400, display_n * 25),  # 動態調整高度
             showlegend=False,
-            margin=dict(l=200, r=100, t=80, b=50),
+            margin=dict(l=40, r=40, t=80, b=50),
             plot_bgcolor="rgba(0,0,0,0)",
             paper_bgcolor="rgba(0,0,0,0)",
             uniformtext=dict(mode="hide", minsize=8),
         )
 
         fig.update_xaxes(showgrid=True, gridcolor="rgba(128,128,128,0.2)")
+        fig.update_yaxes(
+            tickfont=dict(size=11), side="left", tickmode="linear"
+        )  # 🔧 股票名稱靠左對齊
 
         # 調整 x 軸範圍
         x_min = top_growth["市值成長率_數值"].min()
@@ -278,13 +281,16 @@ def create_negative_growth_ranking_chart(df, days=30, display_n=20, top_n=300):
             yaxis_title="",
             height=max(400, display_n * 25),
             showlegend=False,
-            margin=dict(l=200, r=100, t=80, b=50),
+            margin=dict(l=40, r=40, t=80, b=50),
             plot_bgcolor="rgba(0,0,0,0)",
             paper_bgcolor="rgba(0,0,0,0)",
             uniformtext=dict(mode="hide", minsize=8),
         )
 
         fig.update_xaxes(showgrid=True, gridcolor="rgba(128,128,128,0.2)")
+        fig.update_yaxes(
+            tickfont=dict(size=11), side="left", tickmode="linear"
+        )  # 🔧 股票名稱靠左對齊
 
         # 調整 x 軸範圍
         x_min = bottom_n["市值成長率_數值"].min()
@@ -404,13 +410,16 @@ def create_rank_change_chart(df, days=30, display_n=20, top_n=300):
             yaxis_title="",
             height=max(400, display_n * 25),
             showlegend=False,
-            margin=dict(l=200, r=100, t=80, b=50),
+            margin=dict(l=40, r=40, t=80, b=50),
             plot_bgcolor="rgba(0,0,0,0)",
             paper_bgcolor="rgba(0,0,0,0)",
             uniformtext=dict(mode="hide", minsize=8),
         )
 
         fig.update_xaxes(showgrid=True, gridcolor="rgba(128,128,128,0.2)")
+        fig.update_yaxes(
+            tickfont=dict(size=11), side="left", tickmode="linear"
+        )  # 🔧 股票名稱靠左對齊
 
         # 調整 x 軸範圍
         x_min = top_rank["排名變化_數值"].min()
@@ -538,13 +547,16 @@ def create_rank_decline_chart(df, days=30, display_n=20, top_n=300):
             yaxis_title="",
             height=max(400, display_n * 25),
             showlegend=False,
-            margin=dict(l=200, r=100, t=80, b=50),
+            margin=dict(l=40, r=40, t=80, b=50),
             plot_bgcolor="rgba(0,0,0,0)",
             paper_bgcolor="rgba(0,0,0,0)",
             uniformtext=dict(mode="hide", minsize=8),
         )
 
         fig.update_xaxes(showgrid=True, gridcolor="rgba(128,128,128,0.2)")
+        fig.update_yaxes(
+            tickfont=dict(size=11), side="left", tickmode="linear"
+        )  # 🔧 股票名稱靠左對齊
 
         # 調整 x 軸範圍
         x_min = bottom_n["排名變化_數值"].min()
@@ -692,6 +704,7 @@ layout = dbc.Container(
                                 dbc.CardBody(
                                     [
                                         html.H5("⚙️ 分析參數", className="card-title"),
+                                        # Slider 控制區 (RWD: 手機版一行一個)
                                         dbc.Row(
                                             [
                                                 dbc.Col(
@@ -720,7 +733,11 @@ layout = dbc.Container(
                                                             },
                                                         ),
                                                     ],
-                                                    width=4,
+                                                    xs=12,
+                                                    sm=12,
+                                                    md=4,
+                                                    lg=4,  # 🔧 RWD: 手機版全寬，桌面版 1/3
+                                                    className="mb-3",
                                                 ),
                                                 dbc.Col(
                                                     [
@@ -746,7 +763,11 @@ layout = dbc.Container(
                                                             },
                                                         ),
                                                     ],
-                                                    width=4,
+                                                    xs=12,
+                                                    sm=12,
+                                                    md=4,
+                                                    lg=4,  # 🔧 RWD: 手機版全寬，桌面版 1/3
+                                                    className="mb-3",
                                                 ),
                                                 dbc.Col(
                                                     [
@@ -773,10 +794,13 @@ layout = dbc.Container(
                                                             },
                                                         ),
                                                     ],
-                                                    width=4,
+                                                    xs=12,
+                                                    sm=12,
+                                                    md=4,
+                                                    lg=4,  # 🔧 RWD: 手機版全寬，桌面版 1/3
+                                                    className="mb-3",
                                                 ),
                                             ],
-                                            className="mb-3",
                                         ),
                                     ]
                                 )
@@ -795,7 +819,7 @@ layout = dbc.Container(
             children=[
                 # 摘要卡片
                 dbc.Row(id="summary-cards", className="mb-4"),
-                # 第一排圖表:市值成長率 vs 排名爬升
+                # 第一排圖表:市值成長率 vs 排名爬升 (RWD: 手機版一行一個,桌面版一行兩個)
                 dbc.Row(
                     [
                         dbc.Col(
@@ -814,7 +838,10 @@ layout = dbc.Container(
                                     className="shadow-sm mb-4",
                                 )
                             ],
-                            width=6,
+                            xs=12,
+                            sm=12,
+                            md=6,
+                            lg=6,  # 🔧 RWD: 手機版全寬，桌面版半寬
                         ),
                         dbc.Col(
                             [
@@ -832,11 +859,14 @@ layout = dbc.Container(
                                     className="shadow-sm mb-4",
                                 )
                             ],
-                            width=6,
+                            xs=12,
+                            sm=12,
+                            md=6,
+                            lg=6,  # 🔧 RWD: 手機版全寬，桌面版半寬
                         ),
                     ]
                 ),
-                # 第二排圖表:市值負成長率 vs 排名下滑
+                # 第二排圖表:市值負成長率 vs 排名下滑 (RWD: 手機版一行一個,桌面版一行兩個)
                 dbc.Row(
                     [
                         dbc.Col(
@@ -855,7 +885,10 @@ layout = dbc.Container(
                                     className="shadow-sm mb-4",
                                 )
                             ],
-                            width=6,
+                            xs=12,
+                            sm=12,
+                            md=6,
+                            lg=6,  # 🔧 RWD: 手機版全寬，桌面版半寬
                         ),
                         dbc.Col(
                             [
@@ -873,7 +906,10 @@ layout = dbc.Container(
                                     className="shadow-sm mb-4",
                                 )
                             ],
-                            width=6,
+                            xs=12,
+                            sm=12,
+                            md=6,
+                            lg=6,  # 🔧 RWD: 手機版全寬，桌面版半寬
                         ),
                     ]
                 ),

@@ -88,9 +88,11 @@ def create_revenue_yoy_chart(df, top_n=30):
             title="年增率 (%)",
             gridcolor="rgba(128,128,128,0.2)",
         ),
-        yaxis=dict(title=""),
+        yaxis=dict(
+            title="", tickfont=dict(size=11), side="left"
+        ),  # 🔧 股票名稱靠左對齊
         height=max(500, top_n * 22),
-        margin=dict(l=180, r=80, t=60, b=50),
+        margin=dict(l=40, r=40, t=60, b=50),
         plot_bgcolor="rgba(0,0,0,0)",
         paper_bgcolor="rgba(0,0,0,0)",
         showlegend=False,
@@ -171,9 +173,11 @@ def create_revenue_mom_chart(df, top_n=30):
             title="月增率 (%)",
             gridcolor="rgba(128,128,128,0.2)",
         ),
-        yaxis=dict(title=""),
+        yaxis=dict(
+            title="", tickfont=dict(size=11), side="left"
+        ),  # 🔧 股票名稱靠左對齊
         height=max(500, top_n * 22),
-        margin=dict(l=180, r=80, t=60, b=50),
+        margin=dict(l=40, r=40, t=60, b=50),
         plot_bgcolor="rgba(0,0,0,0)",
         paper_bgcolor="rgba(0,0,0,0)",
         showlegend=False,
@@ -331,7 +335,11 @@ layout = dbc.Container(
                                                             clearable=False,
                                                         ),
                                                     ],
-                                                    width=3,
+                                                    xs=12,
+                                                    sm=12,
+                                                    md=3,
+                                                    lg=3,  # 🔧 RWD: 手機版全寬，桌面版 1/4
+                                                    className="mb-3",
                                                 ),
                                                 dbc.Col(
                                                     [
@@ -358,7 +366,11 @@ layout = dbc.Container(
                                                             },
                                                         ),
                                                     ],
-                                                    width=4,
+                                                    xs=12,
+                                                    sm=12,
+                                                    md=4,
+                                                    lg=4,  # 🔧 RWD: 手機版全寬，桌面版 1/3
+                                                    className="mb-3",
                                                 ),
                                                 dbc.Col(
                                                     [
@@ -386,7 +398,11 @@ layout = dbc.Container(
                                                             },
                                                         ),
                                                     ],
-                                                    width=4,
+                                                    xs=12,
+                                                    sm=12,
+                                                    md=4,
+                                                    lg=4,  # 🔧 RWD: 手機版全寬，桌面版 1/3
+                                                    className="mb-3",
                                                 ),
                                             ],
                                             className="mb-3",
@@ -421,7 +437,7 @@ layout = dbc.Container(
             children=[
                 # 摘要卡片
                 dbc.Row(id="rev-summary-cards", className="mb-4"),
-                # 圖表區 - 第一排: YoY 和 MoM 並排
+                # 圖表區 - 第一排: YoY 和 MoM (RWD: 手機版一行一個，桌面版一行兩個)
                 dbc.Row(
                     [
                         dbc.Col(
@@ -440,7 +456,10 @@ layout = dbc.Container(
                                     className="shadow-sm mb-4",
                                 )
                             ],
-                            width=6,
+                            xs=12,
+                            sm=12,
+                            md=6,
+                            lg=6,  # 🔧 RWD: 手機版全寬，桌面版半寬
                         ),
                         dbc.Col(
                             [
@@ -458,11 +477,14 @@ layout = dbc.Container(
                                     className="shadow-sm mb-4",
                                 )
                             ],
-                            width=6,
+                            xs=12,
+                            sm=12,
+                            md=6,
+                            lg=6,  # 🔧 RWD: 手機版全寬，桌面版半寬
                         ),
                     ]
                 ),
-                # 圖表區 - 第二排: 均線分布
+                # 圖表區 - 第二排: 均線分布 (RWD: 手機版一行一個，桌面版一行兩個)
                 dbc.Row(
                     [
                         dbc.Col(
@@ -481,7 +503,10 @@ layout = dbc.Container(
                                     className="shadow-sm mb-4",
                                 )
                             ],
-                            width=6,
+                            xs=12,
+                            sm=12,
+                            md=6,
+                            lg=6,  # 🔧 RWD: 手機版全寬，桌面版半寬
                         ),
                         dbc.Col(
                             [
@@ -562,7 +587,10 @@ layout = dbc.Container(
                                     className="shadow-sm mb-4",
                                 )
                             ],
-                            width=6,
+                            xs=12,
+                            sm=12,
+                            md=6,
+                            lg=6,  # 🔧 RWD: 手機版全寬，桌面版半寬
                         ),
                     ]
                 ),
@@ -707,7 +735,7 @@ def update_revenue_ranking(sort_by, top_n, chart_n):
         positive_mom_count = (df["營收MoM(%)"] > 0).sum()
         bullish_count = (df["均線排列"] == "多頭排列").sum()
 
-        # 建立摘要卡片
+        # 建立摘要卡片 (RWD: 手機版一行一個，平板一行兩個，桌面版一行六個)
         summary_cards = [
             dbc.Col(
                 [
@@ -726,7 +754,11 @@ def update_revenue_ranking(sort_by, top_n, chart_n):
                         className="shadow-sm",
                     )
                 ],
-                width=2,
+                xs=12,
+                sm=6,
+                md=4,
+                lg=2,  # 🔧 RWD
+                className="mb-3",
             ),
             dbc.Col(
                 [
@@ -750,7 +782,11 @@ def update_revenue_ranking(sort_by, top_n, chart_n):
                         className="shadow-sm",
                     )
                 ],
-                width=2,
+                xs=12,
+                sm=6,
+                md=4,
+                lg=2,  # 🔧 RWD
+                className="mb-3",
             ),
             dbc.Col(
                 [
@@ -774,7 +810,11 @@ def update_revenue_ranking(sort_by, top_n, chart_n):
                         className="shadow-sm",
                     )
                 ],
-                width=2,
+                xs=12,
+                sm=6,
+                md=4,
+                lg=2,  # 🔧 RWD
+                className="mb-3",
             ),
             dbc.Col(
                 [
@@ -793,7 +833,11 @@ def update_revenue_ranking(sort_by, top_n, chart_n):
                         className="shadow-sm",
                     )
                 ],
-                width=2,
+                xs=12,
+                sm=6,
+                md=4,
+                lg=2,  # 🔧 RWD
+                className="mb-3",
             ),
             dbc.Col(
                 [
@@ -812,7 +856,11 @@ def update_revenue_ranking(sort_by, top_n, chart_n):
                         className="shadow-sm",
                     )
                 ],
-                width=2,
+                xs=12,
+                sm=6,
+                md=4,
+                lg=2,  # 🔧 RWD
+                className="mb-3",
             ),
             dbc.Col(
                 [
@@ -831,7 +879,11 @@ def update_revenue_ranking(sort_by, top_n, chart_n):
                         className="shadow-sm",
                     )
                 ],
-                width=2,
+                xs=12,
+                sm=6,
+                md=4,
+                lg=2,  # 🔧 RWD
+                className="mb-3",
             ),
         ]
 

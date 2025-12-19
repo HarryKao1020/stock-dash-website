@@ -316,7 +316,7 @@ layout = dbc.Container(
                                                         html.Div(
                                                             [
                                                                 dbc.Button(
-                                                                    "◀ 前一天",
+                                                                    "◀",
                                                                     id="btn-prev-day",
                                                                     color="secondary",
                                                                     size="sm",
@@ -339,7 +339,7 @@ layout = dbc.Container(
                                                                     },
                                                                 ),
                                                                 dbc.Button(
-                                                                    "後一天 ▶",
+                                                                    "▶",
                                                                     id="btn-next-day",
                                                                     color="secondary",
                                                                     size="sm",
@@ -352,7 +352,7 @@ layout = dbc.Container(
                                                             },
                                                         ),
                                                     ],
-                                                    width=6,
+                                                    xs=12, sm=12, md=6, lg=6,  # 🔧 RWD: 手機版全寬，桌面版半寬
                                                 ),
                                                 dbc.Col(
                                                     [
@@ -365,7 +365,7 @@ layout = dbc.Container(
                                                             className="text-primary mb-0 mt-2",
                                                         ),
                                                     ],
-                                                    width=6,
+                                                    xs=12, sm=12, md=6, lg=6,  # 🔧 RWD: 手機版全寬，桌面版半寬
                                                 ),
                                             ],
                                             className="mb-3",
@@ -432,7 +432,7 @@ layout = dbc.Container(
                                 ),
                                 dbc.CardBody(
                                     [
-                                        # 天數選擇 Slider
+                                        # 天數選擇 Slider (RWD: 手機版一行一個)
                                         dbc.Row(
                                             [
                                                 dbc.Col(
@@ -462,7 +462,8 @@ layout = dbc.Container(
                                                             },
                                                         ),
                                                     ],
-                                                    width=6,
+                                                    xs=12, sm=12, md=6, lg=6,  # 🔧 RWD: 手機版全寬，桌面版半寬
+                                                    className="mb-3",
                                                 ),
                                                 dbc.Col(
                                                     [
@@ -475,7 +476,8 @@ layout = dbc.Container(
                                                             className="text-muted mb-0 mt-2",
                                                         ),
                                                     ],
-                                                    width=6,
+                                                    xs=12, sm=12, md=6, lg=6,  # 🔧 RWD: 手機版全寬，桌面版半寬
+                                                    className="mb-3",
                                                 ),
                                             ],
                                             className="mb-3",
@@ -627,7 +629,7 @@ def update_money_flow_chart(selected_date):
             avg_amount = result["成交金額(億)"].mean()
             max_stock = result.iloc[0]
 
-            # 建立摘要卡片
+            # 建立摘要卡片 (RWD: 手機版一行一個，桌面版一行四個)
             summary_cards = [
                 dbc.Col(
                     [
@@ -647,7 +649,8 @@ def update_money_flow_chart(selected_date):
                             className="shadow-sm",
                         )
                     ],
-                    width=3,
+                    xs=12, sm=6, md=6, lg=3,  # 🔧 RWD: 手機版全寬，平板半寬，桌面版 1/4
+                    className="mb-3",
                 ),
                 dbc.Col(
                     [
@@ -668,7 +671,8 @@ def update_money_flow_chart(selected_date):
                             className="shadow-sm",
                         )
                     ],
-                    width=3,
+                    xs=12, sm=6, md=6, lg=3,  # 🔧 RWD: 手機版全寬，平板半寬，桌面版 1/4
+                    className="mb-3",
                 ),
                 dbc.Col(
                     [
@@ -688,7 +692,8 @@ def update_money_flow_chart(selected_date):
                             className="shadow-sm",
                         )
                     ],
-                    width=3,
+                    xs=12, sm=6, md=6, lg=3,  # 🔧 RWD: 手機版全寬，平板半寬，桌面版 1/4
+                    className="mb-3",
                 ),
                 dbc.Col(
                     [
@@ -707,7 +712,8 @@ def update_money_flow_chart(selected_date):
                             className="shadow-sm",
                         )
                     ],
-                    width=3,
+                    xs=12, sm=6, md=6, lg=3,  # 🔧 RWD: 手機版全寬，平板半寬，桌面版 1/4
+                    className="mb-3",
                 ),
             ]
         else:
