@@ -28,28 +28,34 @@ PROJECT_DIR=/path/to/stock-dash-project
 LOG_DIR=$PROJECT_DIR/logs
 
 # ==============================================================================
-# 排程設定
+# 排程設定 - 多時段更新快取
+# ==============================================================================
+#
+# 建議時段：
+#   1. 早上 07:30 - 開盤前更新資料
+#   2. 下午 13:45 - 盤中更新（午休後）
+#   3. 下午 17:30 - 收盤後更新當日完整資料
+#   4. 半夜 00:00 - 深夜更新（確保隔日資料準備完成）
+#
 # ==============================================================================
 
-# 方法 1: 本地環境 - 每個交易日早上 7:30 更新快取
-# 週一到週五 (1-5)
-30 7 * * 1-5 cd $PROJECT_DIR && python3 scripts/update_cache.py >> $LOG_DIR/cache_update.log 2>&1
+# 方法 1: 本地環境（不推薦，Docker 部署請用方法 2 或 3）
+# 30 7 * * 1-5 cd $PROJECT_DIR && python3 scripts/update_cache.py >> $LOG_DIR/cache_update.log 2>&1
+# 45 13 * * 1-5 cd $PROJECT_DIR && python3 scripts/update_cache.py >> $LOG_DIR/cache_update.log 2>&1
+# 30 17 * * 1-5 cd $PROJECT_DIR && python3 scripts/update_cache.py >> $LOG_DIR/cache_update.log 2>&1
+# 0 0 * * * cd $PROJECT_DIR && python3 scripts/update_cache.py >> $LOG_DIR/cache_update.log 2>&1
 
-# 方法 2: Docker 環境 - 使用 docker-compose exec
-# 30 7 * * 1-5 cd $PROJECT_DIR && docker-compose exec -T web python scripts/update_cache.py >> $LOG_DIR/cache_update.log 2>&1
+# 方法 2: Docker 環境 - 使用 docker-compose exec（推薦）
+30 7 * * 1-5 cd $PROJECT_DIR && docker-compose exec -T web python scripts/update_cache.py >> $LOG_DIR/cache_update.log 2>&1
+45 13 * * 1-5 cd $PROJECT_DIR && docker-compose exec -T web python scripts/update_cache.py >> $LOG_DIR/cache_update.log 2>&1
+30 17 * * 1-5 cd $PROJECT_DIR && docker-compose exec -T web python scripts/update_cache.py >> $LOG_DIR/cache_update.log 2>&1
+0 0 * * * cd $PROJECT_DIR && docker-compose exec -T web python scripts/update_cache.py >> $LOG_DIR/cache_update.log 2>&1
 
-# 方法 3: Docker 環境 - 使用 docker exec (需要容器名稱)
+# 方法 3: Docker 環境 - 使用 docker exec（需要確認容器名稱）
 # 30 7 * * 1-5 docker exec stock-dash-web-1 python scripts/update_cache.py >> $LOG_DIR/cache_update.log 2>&1
-
-# ==============================================================================
-# 可選排程
-# ==============================================================================
-
-# 選項 A: 收盤後再更新一次（確保當日資料完整）
-# 30 14 * * 1-5 cd $PROJECT_DIR && python3 scripts/update_cache.py >> $LOG_DIR/cache_update.log 2>&1
-
-# 選項 B: 每天執行一次（包含週末，為週一準備）
-# 30 7 * * * cd $PROJECT_DIR && python3 scripts/update_cache.py >> $LOG_DIR/cache_update.log 2>&1
+# 45 13 * * 1-5 docker exec stock-dash-web-1 python scripts/update_cache.py >> $LOG_DIR/cache_update.log 2>&1
+# 30 17 * * 1-5 docker exec stock-dash-web-1 python scripts/update_cache.py >> $LOG_DIR/cache_update.log 2>&1
+# 0 0 * * * docker exec stock-dash-web-1 python scripts/update_cache.py >> $LOG_DIR/cache_update.log 2>&1
 
 # ==============================================================================
 # Cron 語法說明
