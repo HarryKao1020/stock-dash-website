@@ -1023,7 +1023,10 @@ def update_all_charts(n_intervals, n_clicks):
 
         # ========== 處置股和警示股資料 ==========
         try:
-            from finlab_data import get_disposal_stock_count, get_noticed_stock_count
+            from data.finlab_data import (
+                get_disposal_stock_count,
+                get_noticed_stock_count,
+            )
 
             disposal_count = get_disposal_stock_count(days=days_to_display)
             noticed_count = get_noticed_stock_count(days=days_to_display)

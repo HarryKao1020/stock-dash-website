@@ -17,7 +17,7 @@ from pathlib import Path
 
 # 匯入共用函數
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from finlab_data import get_cache_dir
+from data.finlab_data import get_cache_dir
 
 # 快取目錄
 CACHE_DIR = get_cache_dir("shioaji")

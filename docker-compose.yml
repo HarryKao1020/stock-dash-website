@@ -1,29 +1,25 @@
 version: '3.8'
 
 services:
-  dash-app:
+  web:
     build: .
-    container_name: dash-financial-dashboard
+    container_name: stock-dash-web
     ports:
-      - "8050:8050"
+      - "80:8050"
     environment:
-      # FinLab & Shioaji
+      # FinLab & Shioaji API
       - FINLAB_TOKEN=${FINLAB_TOKEN}
       - API_KEY=${API_KEY}
       - SECRET_KEY=${SECRET_KEY}
-      # 🆕 認證相關
+      # 認證相關
       - FLASK_SECRET_KEY=${FLASK_SECRET_KEY}
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
       - FACEBOOK_CLIENT_ID=${FACEBOOK_CLIENT_ID}
       - FACEBOOK_CLIENT_SECRET=${FACEBOOK_CLIENT_SECRET}
       - LOGIN_REQUIRED=${LOGIN_REQUIRED:-false}
-      # 🆕 資料庫目錄
-      - DB_DIR=/app/data
     volumes:
-      # 持久化快取
-      - ./cache:/app/cache
-      # 🆕 持久化資料庫（SQLite）
+      # 持久化資料目錄（包含 cache 和 users.db）
       - ./data:/app/data
     restart: unless-stopped
     # 記憶體限制 - 適合 2GB VPS

@@ -31,8 +31,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # 複製應用程式
 COPY . .
 
-# 建立 cache 目錄
-RUN mkdir -p cache
+# 建立 data/cache 目錄（快取檔案存放位置）
+RUN mkdir -p data/cache
 
 # 暴露端口
 EXPOSE 8050
