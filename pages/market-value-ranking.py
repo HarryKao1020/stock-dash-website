@@ -139,12 +139,17 @@ def create_growth_ranking_chart(df, days=30, display_n=20, top_n=300):
         )
 
         fig.update_layout(
-            title=f"市值前 {top_n} 名成長率排行 TOP {display_n} ({days}天)",
+            title={
+                "text": f"市值前 {top_n} 名成長率排行<br>TOP {display_n} ({days}天)",  # 🔧 使用 <br> 換行
+                "font": {"size": 16, "color": "#2c3e50"},
+                "x": 0.5,
+                "xanchor": "center",
+            },
             xaxis_title="成長率 (%)",
             yaxis_title="",
             height=max(400, display_n * 25),  # 動態調整高度
             showlegend=False,
-            margin=dict(l=40, r=40, t=80, b=50),
+            margin=dict(l=40, r=40, t=100, b=50),  # 🔧 增加上方空間以容納兩行標題
             plot_bgcolor="rgba(0,0,0,0)",
             paper_bgcolor="rgba(0,0,0,0)",
             uniformtext=dict(mode="hide", minsize=8),
@@ -276,12 +281,17 @@ def create_negative_growth_ranking_chart(df, days=30, display_n=20, top_n=300):
         )
 
         fig.update_layout(
-            title=f"市值前 {top_n} 名負成長率排行 TOP {display_n} ({days}天)",
+            title={
+                "text": f"市值前 {top_n} 名負成長率排行<br>TOP {display_n} ({days}天)",  # 🔧 使用 <br> 換行
+                "font": {"size": 16, "color": "#2c3e50"},
+                "x": 0.5,
+                "xanchor": "center",
+            },
             xaxis_title="成長率 (%)",
             yaxis_title="",
             height=max(400, display_n * 25),
             showlegend=False,
-            margin=dict(l=40, r=40, t=80, b=50),
+            margin=dict(l=40, r=40, t=100, b=50),  # 🔧 增加上方空間以容納兩行標題
             plot_bgcolor="rgba(0,0,0,0)",
             paper_bgcolor="rgba(0,0,0,0)",
             uniformtext=dict(mode="hide", minsize=8),
@@ -405,12 +415,17 @@ def create_rank_change_chart(df, days=30, display_n=20, top_n=300):
         )
 
         fig.update_layout(
-            title=f"市值前 {top_n} 名排名爬升 TOP {display_n} ({days}天)",
+            title={
+                "text": f"市值前 {top_n} 名排名爬升<br>TOP {display_n} ({days}天)",  # 🔧 使用 <br> 換行
+                "font": {"size": 16, "color": "#2c3e50"},
+                "x": 0.5,
+                "xanchor": "center",
+            },
             xaxis_title="排名變化",
             yaxis_title="",
             height=max(400, display_n * 25),
             showlegend=False,
-            margin=dict(l=40, r=40, t=80, b=50),
+            margin=dict(l=40, r=40, t=100, b=50),  # 🔧 增加上方空間以容納兩行標題
             plot_bgcolor="rgba(0,0,0,0)",
             paper_bgcolor="rgba(0,0,0,0)",
             uniformtext=dict(mode="hide", minsize=8),
@@ -542,12 +557,17 @@ def create_rank_decline_chart(df, days=30, display_n=20, top_n=300):
         )
 
         fig.update_layout(
-            title=f"市值前 {top_n} 名排名下滑 TOP {display_n} ({days}天)",
+            title={
+                "text": f"市值前 {top_n} 名排名下滑<br>TOP {display_n} ({days}天)",  # 🔧 使用 <br> 換行
+                "font": {"size": 16, "color": "#2c3e50"},
+                "x": 0.5,
+                "xanchor": "center",
+            },
             xaxis_title="排名變化",
             yaxis_title="",
             height=max(400, display_n * 25),
             showlegend=False,
-            margin=dict(l=40, r=40, t=80, b=50),
+            margin=dict(l=40, r=40, t=100, b=50),  # 🔧 增加上方空間以容納兩行標題
             plot_bgcolor="rgba(0,0,0,0)",
             paper_bgcolor="rgba(0,0,0,0)",
             uniformtext=dict(mode="hide", minsize=8),
@@ -631,7 +651,7 @@ def create_industry_distribution_chart(df, display_n=50, analysis_top_n=300, day
     )
 
     fig.update_layout(
-        title=f"市值前 {analysis_top_n} 名成長率排名 TOP {display_n} 產業分布 ({days}天)",
+        title=f"市值前 {analysis_top_n} 名成長率<br>排行 TOP {display_n} 產業分布 ({days}天)",
         height=400,
         showlegend=True,
         margin=dict(l=50, r=50, t=80, b=50),

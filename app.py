@@ -2,28 +2,20 @@ import dash
 from dash import Dash, html, dcc, callback, Input, Output, State
 import dash_bootstrap_components as dbc
 import os
-from finlab_data import finlab_data, start_auto_refresh
+from data.finlab_data import finlab_data
 from auth import init_auth
-from flask import session, redirect, request
+from flask import session, redirect, request, jsonify
 from flask_login import current_user
 import sys
 from pathlib import Path
+import time
 
 PROJECT_DIR = Path(__file__).parent
 sys.path.insert(0, str(PROJECT_DIR))
 
-
-# 生產環境不要每次啟動都清除快取（浪費時間和 API 額度）
-# 如果需要手動清除，可以刪除 cache 目錄內的檔案
-print("🚀 啟動中，使用現有快取...")
-
-# 測試資料
-print("🧪 app.py 中的資料測試:")
-test_close = finlab_data.world_index_close
-print(f"   資料日期範圍: {test_close.index.min()} ~ {test_close.index.max()}")
-
-# 定時幾小時清理cache重新抓資料
-start_auto_refresh(interval_hours=4)
+# 使用 lazy loading + Parquet 快取
+# 快取更新由 cron job 排程執行（scripts/update_cache.py）
+print("🚀 啟動中，使用現有快取（Parquet 格式）...")
 
 
 # 初始化 Dash app,使用 Bootstrap 主題
@@ -66,6 +58,70 @@ app.clientside_callback(
 # ✅ 為 Gunicorn 提供 WSGI 入口點（必須放在條件判斷外面）
 server = app.server
 init_auth(server)
+
+
+# ==================== 預熱 API 端點 ====================
+@server.route("/api/warmup", methods=["GET"])
+def warmup_data():
+    """
+    預熱端點 - 預先載入所有常用資料到記憶體
+
+    使用方式:
+    - 手動觸發: curl http://localhost:8050/api/warmup
+    - cron 排程: 0 8 * * 1-5 curl http://localhost:8050/api/warmup
+    """
+    start_time = time.time()
+    results = {"status": "success", "loaded": [], "errors": []}
+
+    try:
+        # 1. 預載 FinLab 常用資料
+        print("🔥 預熱開始 - 載入 FinLab 資料...")
+        finlab_datasets = [
+            ("收盤價", lambda: finlab_data.close),
+            ("成交量", lambda: finlab_data.volume),
+            ("成交金額", lambda: finlab_data.amount),
+            ("世界指數收盤價", lambda: finlab_data.world_index_close),
+            ("融資維持率", lambda: finlab_data.margin_maintenance_ratio),
+            ("月營收", lambda: finlab_data.monthly_revenue),
+            ("營收YoY", lambda: finlab_data.revenue_yoy),
+        ]
+
+        for name, loader in finlab_datasets:
+            try:
+                data = loader()
+                results["loaded"].append(f"FinLab:{name} ({len(data)} records)")
+            except Exception as e:
+                results["errors"].append(f"FinLab:{name} - {str(e)}")
+
+        # 2. 預載 Shioaji 資料(如果已登入)
+        try:
+            from data.shioaji_data import get_cached_or_fetch
+            from auth import get_shioaji_api
+
+            api = get_shioaji_api()
+            if api:
+                print("🔥 預熱 Shioaji 資料...")
+                tse_df, otc_df = get_cached_or_fetch(api)
+                results["loaded"].append(f"Shioaji:TSE ({len(tse_df)} days)")
+                results["loaded"].append(f"Shioaji:OTC ({len(otc_df)} days)")
+            else:
+                results["errors"].append("Shioaji:API 未登入")
+        except Exception as e:
+            results["errors"].append(f"Shioaji - {str(e)}")
+
+        elapsed = time.time() - start_time
+        results["elapsed_seconds"] = round(elapsed, 2)
+
+        print(f"✅ 預熱完成! 耗時: {elapsed:.2f} 秒")
+        print(f"   成功載入: {len(results['loaded'])} 項")
+        print(f"   錯誤: {len(results['errors'])} 項")
+
+        return jsonify(results), 200
+
+    except Exception as e:
+        results["status"] = "error"
+        results["message"] = str(e)
+        return jsonify(results), 500
 
 
 # 頁面登入保護
@@ -122,11 +178,16 @@ top_navbar = dbc.Navbar(
                     ),
                     # Logo
                     html.A(
-                        html.Span(
-                            "📊 Beat Beta", className="navbar-brand-text fw-bold fs-5"
+                        html.Img(
+                            src="/assets/betabeta.png",
+                            style={
+                                "height": "40px",
+                                "maxWidth": "200px",
+                                "objectFit": "contain",
+                            },
                         ),
                         href="/",
-                        className="navbar-brand",
+                        className="navbar-brand d-flex align-items-center",
                     ),
                 ],
                 className="d-flex align-items-center",
@@ -194,7 +255,14 @@ navbar_mobile = dbc.Navbar(
         [
             # Logo
             html.A(
-                html.Span("📊 Beat Beta", className="navbar-brand-text fw-bold"),
+                html.Img(
+                    src="/assets/betabeta.png",
+                    style={
+                        "height": "35px",
+                        "maxWidth": "180px",
+                        "objectFit": "contain",
+                    },
+                ),
                 href="/",
                 className="navbar-brand",
             ),
@@ -219,7 +287,17 @@ sidebar_mobile = dbc.Offcanvas(
     [
         html.Div(
             [
-                html.H5("📊 操盤小天地", className="text-primary fw-bold"),
+                html.Div(
+                    html.Img(
+                        src="/assets/betabeta.png",
+                        style={
+                            "height": "40px",
+                            "maxWidth": "200px",
+                            "objectFit": "contain",
+                        },
+                    ),
+                    className="d-flex align-items-center",
+                ),
                 html.Hr(),
             ],
             className="mb-3",

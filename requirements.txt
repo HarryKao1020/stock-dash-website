@@ -8,6 +8,7 @@ finlab
 shioaji
 TA-Lib
 gunicorn
+pyarrow>=14.0.0  # 🆕 支援 Parquet 格式
 
 # 系統監控
 psutil>=5.9.0

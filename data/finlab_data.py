@@ -3,8 +3,6 @@ from datetime import datetime, timedelta
 import os
 import dotenv
 from pathlib import Path
-import threading
-import atexit
 import finlab
 from finlab import data
 
@@ -22,9 +20,6 @@ PROJECT_DIR = Path(__file__).parent
 CACHE_DIR = PROJECT_DIR / "cache"
 CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
-# 定時更新設定（預設 2 小時 = 7200 秒）
-AUTO_REFRESH_INTERVAL = 2 * 60 * 60  # 秒
-
 
 def get_cache_dir(subdir: str = "") -> Path:
     """
@@ -41,37 +36,75 @@ def get_cache_dir(subdir: str = "") -> Path:
     return cache_dir
 
 
-def get_price_data(field="price:收盤價", cache_hours=24):
+def get_price_data(field="price:收盤價", cache_hours=24, use_parquet=True):
     """
-    取得價格資料,支援快取
+    取得價格資料,支援快取（Parquet 或 Pickle 格式）
 
     Args:
         field: FinLab 資料欄位
         cache_hours: 快取有效時間(小時)
+        use_parquet: 是否使用 Parquet 格式（預設 True）
 
     Returns:
         pd.DataFrame: 價格資料
     """
-    cache_file = CACHE_DIR / f'{field.replace(":", "_").replace("/", "_")}.pkl'
-    cache_time_file = CACHE_DIR / f'{field.replace(":", "_").replace("/", "_")}.time'
+    field_name = field.replace(":", "_").replace("/", "_")
 
-    # 檢查快取是否存在且未過期
-    if cache_file.exists() and cache_time_file.exists():
-        with open(cache_time_file, "r") as f:
-            cache_time = datetime.fromisoformat(f.read())
+    # 🆕 Parquet 格式（新版）
+    if use_parquet:
+        cache_file = CACHE_DIR / f'{field_name}.parquet'
 
-        if datetime.now() - cache_time < timedelta(hours=cache_hours):
-            print(f"✓ 讀取快取: {field}")
-            return pd.read_pickle(cache_file)
+        # Parquet 檔案內建時間戳，不需要額外的 .time 檔案
+        if cache_file.exists():
+            file_mtime = datetime.fromtimestamp(cache_file.stat().st_mtime)
 
-    # 下載新資料
-    print(f"↓ 下載資料: {field}")
-    df = data.get(field)
+            if datetime.now() - file_mtime < timedelta(hours=cache_hours):
+                print(f"✓ 讀取 Parquet 快取: {field}")
+                try:
+                    return pd.read_parquet(cache_file, engine='pyarrow')
+                except Exception as e:
+                    print(f"⚠️ Parquet 讀取失敗，嘗試重新下載: {e}")
 
-    # 儲存快取
-    df.to_pickle(cache_file)
-    with open(cache_time_file, "w") as f:
-        f.write(datetime.now().isoformat())
+        # 下載新資料
+        print(f"↓ 下載資料並儲存為 Parquet: {field}")
+        df = data.get(field)
+
+        # 儲存為 Parquet（使用 snappy 壓縮）
+        try:
+            df.to_parquet(
+                cache_file,
+                engine='pyarrow',
+                compression='snappy',
+                index=True
+            )
+            print(f"✅ 已儲存 Parquet 快取: {cache_file.name}")
+        except Exception as e:
+            print(f"⚠️ Parquet 儲存失敗，改用 Pickle: {e}")
+            # Fallback 到 Pickle
+            use_parquet = False
+
+    # 📦 Pickle 格式（舊版，向後相容）
+    if not use_parquet:
+        cache_file = CACHE_DIR / f'{field_name}.pkl'
+        cache_time_file = CACHE_DIR / f'{field_name}.time'
+
+        # 檢查快取是否存在且未過期
+        if cache_file.exists() and cache_time_file.exists():
+            with open(cache_time_file, "r") as f:
+                cache_time = datetime.fromisoformat(f.read())
+
+            if datetime.now() - cache_time < timedelta(hours=cache_hours):
+                print(f"✓ 讀取 Pickle 快取: {field}")
+                return pd.read_pickle(cache_file)
+
+        # 下載新資料
+        print(f"↓ 下載資料: {field}")
+        df = data.get(field)
+
+        # 儲存快取
+        df.to_pickle(cache_file)
+        with open(cache_time_file, "w") as f:
+            f.write(datetime.now().isoformat())
 
     return df
 
@@ -79,16 +112,19 @@ def get_price_data(field="price:收盤價", cache_hours=24):
 class FinLabData:
     """FinLab 資料管理類別"""
 
-    def __init__(
-        self, auto_refresh: bool = False, refresh_interval: int = AUTO_REFRESH_INTERVAL
-    ):
+    def __init__(self, use_parquet: bool = True):
         """
         初始化 FinLabData
 
         Args:
-            auto_refresh: 是否啟用自動定時更新
-            refresh_interval: 更新間隔（秒），預設 2 小時
+            use_parquet: 是否使用 Parquet 格式儲存快取（預設 True）
+
+        Note:
+            快取更新由 cron job 排程執行（scripts/update_cache.py）
+            不再使用 in-app auto-refresh 機制
         """
+        # 儲存格式設定
+        self._use_parquet = use_parquet
         self._close = None
         self._open = None
         self._high = None
@@ -114,162 +150,53 @@ class FinLabData:
         self._disposal_stock = None
         self._noticed_stock = None
 
-        # 🆕 月營收相關資料
+        # 月營收相關資料
         self._monthly_revenue = None  # 當月營收
         self._revenue_yoy = None  # 去年同月增減(%)
         self._revenue_mom = None  # 上月比較增減(%)
 
-        # 定時更新相關
-        self._auto_refresh = auto_refresh
-        self._refresh_interval = refresh_interval
-        self._refresh_timer = None
-        self._is_running = False
-        self._last_refresh_time = None
-
-        # 如果啟用自動更新，則開始定時器
-        if auto_refresh:
-            self.start_auto_refresh()
-
-    # ==================== 定時更新相關方法 ====================
-
-    def start_auto_refresh(self):
-        """啟動自動定時更新"""
-        if self._is_running:
-            print("⚠️ 自動更新已經在運行中")
-            return
-
-        self._is_running = True
-        self._schedule_next_refresh()
-        print(f"✅ 已啟動自動更新，每 {self._refresh_interval / 3600:.1f} 小時更新一次")
-
-        # 註冊程式結束時的清理函數
-        atexit.register(self.stop_auto_refresh)
-
-    def stop_auto_refresh(self):
-        """停止自動定時更新"""
-        self._is_running = False
-        if self._refresh_timer is not None:
-            self._refresh_timer.cancel()
-            self._refresh_timer = None
-        print("🛑 已停止自動更新")
-
-    def _schedule_next_refresh(self):
-        """排程下一次更新"""
-        if not self._is_running:
-            return
-
-        self._refresh_timer = threading.Timer(
-            self._refresh_interval, self._auto_refresh_callback
-        )
-        self._refresh_timer.daemon = True  # 設為 daemon，主程式結束時自動終止
-        self._refresh_timer.start()
-
-        next_time = datetime.now() + timedelta(seconds=self._refresh_interval)
-        print(f"⏰ 下次更新時間: {next_time.strftime('%Y-%m-%d %H:%M:%S')}")
-
-    def _auto_refresh_callback(self):
-        """自動更新的回呼函數"""
-        if not self._is_running:
-            return
-
-        print(f"\n{'='*50}")
-        print(f"🔄 開始自動更新資料 - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-        print(f"{'='*50}")
-
-        try:
-            self.refresh()
-            self._last_refresh_time = datetime.now()
-            print(
-                f"✅ 自動更新完成 - {self._last_refresh_time.strftime('%Y-%m-%d %H:%M:%S')}"
-            )
-        except Exception as e:
-            print(f"❌ 自動更新失敗: {e}")
-
-        # 排程下一次更新
-        self._schedule_next_refresh()
-
-    def set_refresh_interval(self, hours: float = 2):
-        """
-        設定更新間隔
-
-        Args:
-            hours: 更新間隔（小時）
-        """
-        self._refresh_interval = int(hours * 3600)
-        print(f"📝 已設定更新間隔為 {hours} 小時")
-
-        # 如果正在運行，重新排程
-        if self._is_running:
-            if self._refresh_timer is not None:
-                self._refresh_timer.cancel()
-            self._schedule_next_refresh()
-
-    def get_refresh_status(self) -> dict:
-        """
-        取得自動更新狀態
-
-        Returns:
-            dict: 包含更新狀態的字典
-        """
-        return {
-            "is_running": self._is_running,
-            "refresh_interval_hours": self._refresh_interval / 3600,
-            "last_refresh_time": (
-                self._last_refresh_time.strftime("%Y-%m-%d %H:%M:%S")
-                if self._last_refresh_time
-                else None
-            ),
-            "next_refresh_time": (
-                (
-                    datetime.now() + timedelta(seconds=self._refresh_timer.interval)
-                ).strftime("%Y-%m-%d %H:%M:%S")
-                if self._refresh_timer and self._is_running
-                else None
-            ),
-        }
-
-    # ==================== 原有的 Property 方法 ====================
+    # ==================== Property 方法（Lazy Loading）====================
 
     @property
     def close(self):
         """收盤價"""
         if self._close is None:
-            self._close = get_price_data("price:收盤價")
+            self._close = get_price_data("price:收盤價", use_parquet=self._use_parquet)
         return self._close
 
     @property
     def open(self):
         """開盤價"""
         if self._open is None:
-            self._open = get_price_data("price:開盤價")
+            self._open = get_price_data("price:開盤價", use_parquet=self._use_parquet)
         return self._open
 
     @property
     def high(self):
         """最高價"""
         if self._high is None:
-            self._high = get_price_data("price:最高價")
+            self._high = get_price_data("price:最高價", use_parquet=self._use_parquet)
         return self._high
 
     @property
     def low(self):
         """最低價"""
         if self._low is None:
-            self._low = get_price_data("price:最低價")
+            self._low = get_price_data("price:最低價", use_parquet=self._use_parquet)
         return self._low
 
     @property
     def volume(self):
         """成交量"""
         if self._volume is None:
-            self._volume = get_price_data("price:成交股數")
+            self._volume = get_price_data("price:成交股數", use_parquet=self._use_parquet)
         return self._volume
 
     @property
     def amount(self):
         """成交金額"""
         if self._amount is None:
-            self._amount = get_price_data("price:成交金額", cache_hours=12)
+            self._amount = get_price_data("price:成交金額", cache_hours=12, use_parquet=self._use_parquet)
             # 確保數值為 float
             self._amount = self._amount.astype(float)
         return self._amount
@@ -279,7 +206,7 @@ class FinLabData:
         """融資今日餘額"""
         if self._margin_balance is None:
             self._margin_balance = get_price_data(
-                "margin_transactions:融資今日餘額", cache_hours=24
+                "margin_transactions:融資今日餘額", cache_hours=24, use_parquet=self._use_parquet
             )
         return self._margin_balance
 
@@ -287,7 +214,7 @@ class FinLabData:
     def margin_total(self):
         """融資券總餘額(含買賣超計算)"""
         if self._margin_total is None:
-            融資券總餘額 = get_price_data("margin_balance:融資券總餘額", cache_hours=24)
+            融資券總餘額 = get_price_data("margin_balance:融資券總餘額", cache_hours=24, use_parquet=self._use_parquet)
 
             # 對齊索引
             融資券總餘額 = 融資券總餘額.loc[
@@ -314,7 +241,7 @@ class FinLabData:
         """大盤加權報酬指數"""
         if self._benchmark is None:
             self._benchmark = get_price_data(
-                "benchmark_return:發行量加權股價報酬指數", cache_hours=24
+                "benchmark_return:發行量加權股價報酬指數", cache_hours=24, use_parquet=self._use_parquet
             ).squeeze()
         return self._benchmark
 
@@ -339,7 +266,7 @@ class FinLabData:
     def world_index_open(self):
         """國際指數開盤價"""
         if self._world_index_open is None:
-            self._world_index_open = get_price_data("world_index:open", cache_hours=12)
+            self._world_index_open = get_price_data("world_index:open", cache_hours=12, use_parquet=self._use_parquet)
         return self._world_index_open
 
     @property
@@ -347,7 +274,7 @@ class FinLabData:
         """國際指數收盤價"""
         if self._world_index_close is None:
             self._world_index_close = get_price_data(
-                "world_index:close", cache_hours=12
+                "world_index:close", cache_hours=12, use_parquet=self._use_parquet
             )
         return self._world_index_close
 
@@ -355,21 +282,21 @@ class FinLabData:
     def world_index_high(self):
         """國際指數最高價"""
         if self._world_index_high is None:
-            self._world_index_high = get_price_data("world_index:high", cache_hours=12)
+            self._world_index_high = get_price_data("world_index:high", cache_hours=12, use_parquet=self._use_parquet)
         return self._world_index_high
 
     @property
     def world_index_low(self):
         """國際指數最低價"""
         if self._world_index_low is None:
-            self._world_index_low = get_price_data("world_index:low", cache_hours=12)
+            self._world_index_low = get_price_data("world_index:low", cache_hours=12, use_parquet=self._use_parquet)
         return self._world_index_low
 
     @property
     def world_index_vol(self):
         """國際指數成交量"""
         if self._world_index_vol is None:
-            self._world_index_vol = get_price_data("world_index:vol", cache_hours=12)
+            self._world_index_vol = get_price_data("world_index:vol", cache_hours=12, use_parquet=self._use_parquet)
         return self._world_index_vol
 
     @property
@@ -377,7 +304,7 @@ class FinLabData:
         """非處置股過濾器"""
         if self._disposal_stock is None:
             self._disposal_stock = get_price_data(
-                "etl:disposal_stock_filter", cache_hours=24
+                "etl:disposal_stock_filter", cache_hours=24, use_parquet=self._use_parquet
             )
         return self._disposal_stock
 
@@ -386,7 +313,7 @@ class FinLabData:
         """非注意股過濾器"""
         if self._noticed_stock is None:
             self._noticed_stock = get_price_data(
-                "etl:noticed_stock_filter", cache_hours=24
+                "etl:noticed_stock_filter", cache_hours=24, use_parquet=self._use_parquet
             )
         return self._noticed_stock
 
@@ -397,7 +324,7 @@ class FinLabData:
         """當月營收"""
         if self._monthly_revenue is None:
             self._monthly_revenue = (
-                get_price_data("monthly_revenue:當月營收", cache_hours=24) * 1000
+                get_price_data("monthly_revenue:當月營收", cache_hours=24, use_parquet=self._use_parquet) * 1000
             )  # 轉換成千為初始單位
         return self._monthly_revenue
 
@@ -406,7 +333,7 @@ class FinLabData:
         """營收年增率 (去年同月增減%)"""
         if self._revenue_yoy is None:
             self._revenue_yoy = get_price_data(
-                "monthly_revenue:去年同月增減(%)", cache_hours=24
+                "monthly_revenue:去年同月增減(%)", cache_hours=24, use_parquet=self._use_parquet
             )
         return self._revenue_yoy
 
@@ -415,7 +342,7 @@ class FinLabData:
         """營收月增率 (上月比較增減%)"""
         if self._revenue_mom is None:
             self._revenue_mom = get_price_data(
-                "monthly_revenue:上月比較增減(%)", cache_hours=24
+                "monthly_revenue:上月比較增減(%)", cache_hours=24, use_parquet=self._use_parquet
             )
         return self._revenue_mom
 
@@ -832,12 +759,11 @@ class FinLabData:
                 elif item.is_dir():
                     shutil.rmtree(item)
 
-        # 更新最後更新時間
-        self._last_refresh_time = datetime.now()
+        print("✅ 快取清除完成")
 
 
-# 建立全域實例（預設不啟用自動更新，可手動啟用）
-finlab_data = FinLabData(auto_refresh=False)
+# 建立全域實例（使用 Parquet 格式，透過 cron job 更新快取）
+finlab_data = FinLabData(use_parquet=True)
 
 
 # ==================== 便利函數 ====================
@@ -893,31 +819,7 @@ def get_top_amount_stocks(date_offset=0, top_n=100):
     return finlab_data.get_top_amount_stocks(date_offset, top_n)
 
 
-# 🆕 月營收相關便利函數
+# 月營收相關便利函數
 def get_revenue_ranking(sort_by="yoy", top_n=100):
     """快速取得月營收排行"""
     return finlab_data.get_revenue_ranking(sort_by, top_n)
-
-
-# ==================== 🆕 自動更新相關便利函數 ====================
-
-
-def start_auto_refresh(interval_hours: float = 2):
-    """
-    啟動自動定時更新
-
-    Args:
-        interval_hours: 更新間隔（小時），預設 2 小時
-    """
-    finlab_data.set_refresh_interval(interval_hours)
-    finlab_data.start_auto_refresh()
-
-
-def stop_auto_refresh():
-    """停止自動定時更新"""
-    finlab_data.stop_auto_refresh()
-
-
-def get_refresh_status():
-    """取得自動更新狀態"""
-    return finlab_data.get_refresh_status()

@@ -47,6 +47,24 @@ docker-compose down
 docker-compose up -d --build
 ```
 
+### Data Warmup (避免首次載入緩慢)
+
+```bash
+# 手動觸發預熱 API
+curl http://localhost:8050/api/warmup
+
+# 或使用提供的腳本
+./scripts/warmup.sh
+
+# 設定 cron 自動預熱 (每個交易日早上 8:00)
+# 編輯並安裝 crontab
+cp scripts/crontab.example /tmp/stock-dash-cron
+# 修改路徑後安裝
+crontab /tmp/stock-dash-cron
+# 驗證
+crontab -l
+```
+
 ### Environment Variables
 
 Required environment variables in `.env`:
@@ -78,7 +96,7 @@ DB_DIR=/app/data  # For Docker deployments
 ```
 app.py                    # Main entry point, defines layout with sidebar navigation
 ├── auth.py              # OAuth authentication module (Google/Facebook)
-├── finlab_data.py       # FinLab data management with caching & auto-refresh
+├── finlab_data.py       # FinLab data management with Parquet caching & lazy loading
 ├── user_components.py   # User UI components for auth
 ├── pages/               # Multi-page Dash app
 │   ├── home.py         # World indices dashboard
@@ -99,10 +117,10 @@ app.py                    # Main entry point, defines layout with sidebar naviga
 1. **Multi-page Navigation**: Uses Dash's `use_pages=True` with responsive sidebar (desktop) and offcanvas menu (mobile)
 
 2. **Data Layer (finlab_data.py)**:
-   - Global singleton pattern: `finlab_data = FinLabData()`
-   - Lazy loading with `@property` decorators for each data type
-   - Two-level caching: pickle files (24hr cache) + in-memory
-   - Auto-refresh mechanism: Background thread updates data every N hours
+   - Global singleton pattern: `finlab_data = FinLabData(use_parquet=True)`
+   - Lazy loading with `@property` decorators for each data type (only load when accessed)
+   - Two-level caching: **Parquet files** (24hr cache, 5-10x smaller) + in-memory
+   - **Cache update**: Managed by cron job (`scripts/update_cache.py`), NOT in-app auto-refresh
    - Primary data accessed: `finlab_data.close`, `finlab_data.volume`, `finlab_data.amount`, etc.
 
 3. **Real-time Data (shioaji_data.py)**:
@@ -142,10 +160,50 @@ app.py                    # Main entry point, defines layout with sidebar naviga
 ### FinLab Data Caching
 
 - Cache directory: `cache/` (created automatically)
-- Cache format: Pickle files with `.pkl` extension + `.time` timestamp files
+- Cache format: **Parquet** (`.parquet` files with built-in timestamps)
+  - Fallback: Pickle format (`.pkl` + `.time` files) if Parquet fails
 - Default cache validity: 24 hours (12 hours for some data)
-- Manual refresh: `finlab_data.refresh()` to force re-download
-- Auto-refresh: Configurable via `start_auto_refresh(interval_hours=4)` in app.py
+- **Cache update method**: Cron job (recommended) or manual refresh
+
+#### Cache Update Strategy
+
+**Recommended: Cron Job (Production)**
+```bash
+# Setup cron to update cache daily at 7:30 AM (before market opens)
+# See scripts/crontab.example for full setup
+
+# Method 1: Local environment
+30 7 * * 1-5 cd /path/to/project && python3 scripts/update_cache.py
+
+# Method 2: Docker environment
+30 7 * * 1-5 cd /path/to/project && docker-compose exec -T web python scripts/update_cache.py
+```
+
+**Alternative: Manual Refresh**
+```python
+# In Python console or script
+from data.finlab_data import finlab_data
+finlab_data.refresh()  # Force re-download all data
+```
+
+**Not Recommended: In-app Auto-refresh** (已移除)
+- ❌ 舊方式: `start_auto_refresh(interval_hours=4)` in app.py
+- ⚠️ 問題: 應用程式重啟會中斷、記憶體常駐、無法精確控制時間
+- ✅ 改用: Cron job 排程更新（穩定、可控、獨立於應用程式）
+
+#### Parquet Format Benefits
+
+- **5-10x smaller file size**: ~813 MB → ~80-160 MB total cache
+- **Column-based storage**: Faster partial reads for specific stocks
+- **Cross-platform compatibility**: Works with DuckDB, Spark, R, etc.
+- **No separate timestamp files**: Metadata embedded in Parquet files
+- **Better compression**: Uses Snappy compression algorithm
+
+**Switching back to Pickle** (if needed):
+```python
+# In data/finlab_data.py, modify line 882:
+finlab_data = FinLabData(use_parquet=False)  # Use Pickle format
+```
 
 ### Shioaji Data Caching
 
@@ -209,6 +267,10 @@ def update_chart(...):
 - **Development**: Use existing cache, set `start_auto_refresh(interval_hours=4)` in app.py
 - **Production**: Cache persists in Docker volumes (`./cache:/app/cache`)
 - **Force refresh**: Call `finlab_data.refresh()` or set environment variable to trigger on startup
+- **Warmup API**: Use `/api/warmup` endpoint to preload all data into memory before first user access
+  - Manual: `curl http://localhost:8050/api/warmup`
+  - Automated: Set up cron job (see [scripts/crontab.example](scripts/crontab.example))
+  - Recommended: Run warmup at 8:00 AM on trading days (Mon-Fri)
 
 ### Authentication
 
@@ -239,6 +301,7 @@ def update_chart(...):
 ## Common Troubleshooting
 
 - **"資料不足"**: FinLab cache may be stale, call `finlab_data.refresh()`
+- **First user loads slowly**: Data is fetched on-demand. Use warmup API (`/api/warmup`) or set up cron to preload data
 - **Shioaji login fails**: Check API credentials in `.env`, ensure Shioaji API is accessible
 - **OAuth redirect errors**: Verify callback URLs match exactly in Google/Facebook console
 - **Database locked**: SQLite issue, ensure only one process accesses `data/users.db`

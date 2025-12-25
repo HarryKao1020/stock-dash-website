@@ -30,7 +30,7 @@ import dash_bootstrap_components as dbc
 print(f"🔹 + dash: {mb(process.memory_info().rss):.1f} MB")
 
 # 階段 4: 載入 finlab_data
-from finlab_data import finlab_data
+from data.finlab_data import finlab_data
 
 print(f"🔹 + finlab_data: {mb(process.memory_info().rss):.1f} MB")
 

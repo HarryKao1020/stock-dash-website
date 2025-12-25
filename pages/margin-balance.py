@@ -7,7 +7,7 @@ import pandas as pd
 from datetime import datetime, timedelta
 
 # 從 finlab_data 模組匯入資料
-from finlab_data import finlab_data
+from data.finlab_data import finlab_data
 
 # 註冊頁面
 dash.register_page(__name__, path="/margin-balance", name="融資餘額")
@@ -185,7 +185,9 @@ def create_margin_figure(start_date, end_date):
         yaxis5=dict(title="餘額(元)", showgrid=False, tickfont=dict(color="#333")),
         yaxis6=dict(title="買賣超(億)", tickfont=dict(color="#333")),
         # X軸設定 - 第三個子圖加入 rangeslider
-        xaxis3=dict(rangeslider=dict(visible=True), type="date", tickfont=dict(color="#333")),
+        xaxis3=dict(
+            rangeslider=dict(visible=True), type="date", tickfont=dict(color="#333")
+        ),
     )
 
     return fig
@@ -292,7 +294,10 @@ layout = dbc.Container(
                                                             className="mb-2",
                                                         ),
                                                     ],
-                                                    xs=12, sm=6, md=6, lg=6,  # 🔧 RWD
+                                                    xs=12,
+                                                    sm=6,
+                                                    md=6,
+                                                    lg=6,  # 🔧 RWD
                                                 ),
                                                 dbc.Col(
                                                     [
@@ -309,7 +314,10 @@ layout = dbc.Container(
                                                             className="mb-2",
                                                         ),
                                                     ],
-                                                    xs=12, sm=6, md=6, lg=6,  # 🔧 RWD
+                                                    xs=12,
+                                                    sm=6,
+                                                    md=6,
+                                                    lg=6,  # 🔧 RWD
                                                 ),
                                             ]
                                         ),
@@ -325,7 +333,10 @@ layout = dbc.Container(
                             className="mb-4",
                         )
                     ],
-                    xs=12, sm=12, md=12, lg=12,  # 🔧 全寬顯示
+                    xs=12,
+                    sm=12,
+                    md=12,
+                    lg=12,  # 🔧 全寬顯示
                 )
             ]
         ),

@@ -12,7 +12,7 @@ from pathlib import Path
 PROJECT_DIR = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_DIR))
 
-from finlab_data import finlab_data
+from data.finlab_data import finlab_data
 
 # 註冊頁面
 dash.register_page(__name__, path="/money-flow", name="金流排行")
@@ -130,7 +130,7 @@ def create_money_flow_chart(target_date, top_n=100):
         # 更新布局
         fig.update_layout(
             title=dict(
-                text=f"📊 成交金額排行 TOP {top_n} ({actual_date.strftime('%Y-%m-%d')})",
+                text=f"📊 成交金額排行 TOP {top_n} <br> ({actual_date.strftime('%Y-%m-%d')})",
                 font=dict(size=20, color="#2c3e50"),
                 x=0.5,
                 xanchor="center",
@@ -352,7 +352,10 @@ layout = dbc.Container(
                                                             },
                                                         ),
                                                     ],
-                                                    xs=12, sm=12, md=6, lg=6,  # 🔧 RWD: 手機版全寬，桌面版半寬
+                                                    xs=12,
+                                                    sm=12,
+                                                    md=6,
+                                                    lg=6,  # 🔧 RWD: 手機版全寬，桌面版半寬
                                                 ),
                                                 dbc.Col(
                                                     [
@@ -365,7 +368,10 @@ layout = dbc.Container(
                                                             className="text-primary mb-0 mt-2",
                                                         ),
                                                     ],
-                                                    xs=12, sm=12, md=6, lg=6,  # 🔧 RWD: 手機版全寬，桌面版半寬
+                                                    xs=12,
+                                                    sm=12,
+                                                    md=6,
+                                                    lg=6,  # 🔧 RWD: 手機版全寬，桌面版半寬
                                                 ),
                                             ],
                                             className="mb-3",
@@ -462,7 +468,10 @@ layout = dbc.Container(
                                                             },
                                                         ),
                                                     ],
-                                                    xs=12, sm=12, md=6, lg=6,  # 🔧 RWD: 手機版全寬，桌面版半寬
+                                                    xs=12,
+                                                    sm=12,
+                                                    md=6,
+                                                    lg=6,  # 🔧 RWD: 手機版全寬，桌面版半寬
                                                     className="mb-3",
                                                 ),
                                                 dbc.Col(
@@ -476,7 +485,10 @@ layout = dbc.Container(
                                                             className="text-muted mb-0 mt-2",
                                                         ),
                                                     ],
-                                                    xs=12, sm=12, md=6, lg=6,  # 🔧 RWD: 手機版全寬，桌面版半寬
+                                                    xs=12,
+                                                    sm=12,
+                                                    md=6,
+                                                    lg=6,  # 🔧 RWD: 手機版全寬，桌面版半寬
                                                     className="mb-3",
                                                 ),
                                             ],
@@ -649,7 +661,10 @@ def update_money_flow_chart(selected_date):
                             className="shadow-sm",
                         )
                     ],
-                    xs=12, sm=6, md=6, lg=3,  # 🔧 RWD: 手機版全寬，平板半寬，桌面版 1/4
+                    xs=12,
+                    sm=6,
+                    md=6,
+                    lg=3,  # 🔧 RWD: 手機版全寬，平板半寬，桌面版 1/4
                     className="mb-3",
                 ),
                 dbc.Col(
@@ -671,7 +686,10 @@ def update_money_flow_chart(selected_date):
                             className="shadow-sm",
                         )
                     ],
-                    xs=12, sm=6, md=6, lg=3,  # 🔧 RWD: 手機版全寬，平板半寬，桌面版 1/4
+                    xs=12,
+                    sm=6,
+                    md=6,
+                    lg=3,  # 🔧 RWD: 手機版全寬，平板半寬，桌面版 1/4
                     className="mb-3",
                 ),
                 dbc.Col(
@@ -692,7 +710,10 @@ def update_money_flow_chart(selected_date):
                             className="shadow-sm",
                         )
                     ],
-                    xs=12, sm=6, md=6, lg=3,  # 🔧 RWD: 手機版全寬，平板半寬，桌面版 1/4
+                    xs=12,
+                    sm=6,
+                    md=6,
+                    lg=3,  # 🔧 RWD: 手機版全寬，平板半寬，桌面版 1/4
                     className="mb-3",
                 ),
                 dbc.Col(
@@ -712,7 +733,10 @@ def update_money_flow_chart(selected_date):
                             className="shadow-sm",
                         )
                     ],
-                    xs=12, sm=6, md=6, lg=3,  # 🔧 RWD: 手機版全寬，平板半寬，桌面版 1/4
+                    xs=12,
+                    sm=6,
+                    md=6,
+                    lg=3,  # 🔧 RWD: 手機版全寬，平板半寬，桌面版 1/4
                     className="mb-3",
                 ),
             ]

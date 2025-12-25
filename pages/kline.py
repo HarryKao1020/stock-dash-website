@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 import sys
 
 sys.path.append("..")  # 如果 finlab_data.py 在上層目錄
-from finlab_data import finlab_data
+from data.finlab_data import finlab_data
 
 # 註冊頁面
 dash.register_page(__name__, path="/kline", name="K線圖")

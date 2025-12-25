@@ -12,7 +12,7 @@ from pathlib import Path
 PROJECT_DIR = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_DIR))
 
-from finlab_data import finlab_data
+from data.finlab_data import finlab_data
 
 # 註冊頁面
 dash.register_page(__name__, path="/rev-rank", name="月營收排行")

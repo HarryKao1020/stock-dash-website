@@ -710,9 +710,10 @@ layout = dbc.Container(
         dcc.Interval(
             id="interval-component", interval=30 * 1000, n_intervals=0  # 固定 30 秒
         ),
-        # 加權指數 (RWD: 手機版全寬，桌面版半寬)
+        # 加權指數 + 櫃買指數 (電腦版左右並排，手機版上下排列)
         dbc.Row(
             [
+                # 台股加權指數
                 dbc.Col(
                     [
                         html.H3(
@@ -726,9 +727,7 @@ layout = dbc.Container(
                                 dcc.Graph(
                                     id="tse-chart",
                                     config={"displayModeBar": True},
-                                    style={
-                                        "height": "650px"
-                                    },  # 🔧 從 600px 提高到 650px
+                                    style={"height": "650px"},
                                 ),
                             ],
                         ),
@@ -775,14 +774,11 @@ layout = dbc.Container(
                     ],
                     xs=12,
                     sm=12,
-                    md=6,
-                    lg=6,  # 🔧 RWD: 手機版全寬，桌面版半寬
+                    md=12,
+                    lg=6,  # 手機版全寬，電腦版半寬
+                    className="mb-4 mb-lg-0",  # 手機版下方留空間，電腦版不留
                 ),
-            ]
-        ),
-        # 櫃買指數 (RWD: 手機版全寬，桌面版半寬)
-        dbc.Row(
-            [
+                # 櫃買指數
                 dbc.Col(
                     [
                         html.H3("📈 櫃買指數", className="mb-3 text-danger"),
@@ -793,9 +789,7 @@ layout = dbc.Container(
                                 dcc.Graph(
                                     id="otc-chart",
                                     config={"displayModeBar": True},
-                                    style={
-                                        "height": "650px"
-                                    },  # 🔧 從 600px 提高到 650px
+                                    style={"height": "650px"},
                                 ),
                             ],
                         ),
@@ -842,10 +836,11 @@ layout = dbc.Container(
                     ],
                     xs=12,
                     sm=12,
-                    md=6,
-                    lg=6,  # 🔧 RWD: 手機版全寬，桌面版半寬
+                    md=12,
+                    lg=6,  # 手機版全寬，電腦版半寬
                 ),
-            ]
+            ],
+            className="mb-4",
         ),
         # 新增處置股和警示股圖表
         html.Hr(className="hr-primary", style={"margin": "40px 0"}),
@@ -1093,7 +1088,10 @@ def update_all_charts(n_intervals):
 
         # ========== 處置股和警示股資料 ==========
         try:
-            from finlab_data import get_disposal_stock_count, get_noticed_stock_count
+            from data.finlab_data import (
+                get_disposal_stock_count,
+                get_noticed_stock_count,
+            )
 
             disposal_count = get_disposal_stock_count(days=days_to_display)
             noticed_count = get_noticed_stock_count(days=days_to_display)

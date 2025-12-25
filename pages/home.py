@@ -20,7 +20,7 @@ print(f"📁 PROJECT_DIR: {PROJECT_DIR.absolute()}")
 print(f"📁 home.py 位置: {Path(__file__).absolute()}")
 print("=" * 60)
 
-from finlab_data import finlab_data
+from data.finlab_data import finlab_data
 
 # 👇 測試資料日期
 print("🧪 測試 finlab_data 在 home.py 中的資料:")
