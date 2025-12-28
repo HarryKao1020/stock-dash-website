@@ -1,0 +1,70 @@
+# ==============================================================================
+# Stock Dashboard - FinLab 快取更新排程
+# ==============================================================================
+#
+# 安裝方式（在 Lightsail 主機上執行）:
+#   1. 確認專案路徑: pwd
+#   2. 編輯此檔案，修改 PROJECT_DIR 為實際路徑
+#   3. 安裝 crontab: crontab scripts/stock-dash.crontab
+#   4. 驗證: crontab -l
+#
+# 移除排程:
+#   crontab -r
+#
+# 查看執行記錄:
+#   tail -f /home/ubuntu/stock-dash-project/logs/cache_update.log
+#
+# ==============================================================================
+
+SHELL=/bin/bash
+PATH=/usr/local/bin:/usr/bin:/bin
+
+# ==============================================================================
+# 專案路徑設定 - 請修改為您的實際路徑
+# ==============================================================================
+# 範例: /home/ubuntu/stock-dash-project
+# 範例: /home/bitnami/stock-dash-project
+# 範例: /opt/stock-dash-project
+
+PROJECT_DIR=/home/ubuntu/stock-dash-website
+
+# ==============================================================================
+# 定時更新排程（週一~週五，台灣時間）
+# ==============================================================================
+#
+# 時間說明:
+#   07:00 - 開盤前更新（台股 08:30 開盤前）
+#   13:45 - 午盤後更新
+#   15:30 - 收盤後更新（台股 13:30 收盤後）
+#   17:30 - 下午更新
+#   19:00 - 晚間更新
+#   21:30 - 夜間更新
+#
+# ==============================================================================
+
+# 早上 7:00 - 開盤前更新
+0 7 * * 1-5 cd $PROJECT_DIR && docker-compose exec -T web python scripts/update_cache.py >> $PROJECT_DIR/logs/cache_update.log 2>&1
+
+# 午盤後 13:45 更新
+45 13 * * 1-5 cd $PROJECT_DIR && docker-compose exec -T web python scripts/update_cache.py >> $PROJECT_DIR/logs/cache_update.log 2>&1
+
+# 收盤後 15:30 更新
+30 15 * * 1-5 cd $PROJECT_DIR && docker-compose exec -T web python scripts/update_cache.py >> $PROJECT_DIR/logs/cache_update.log 2>&1
+
+# 下午 17:30 更新
+30 17 * * 1-5 cd $PROJECT_DIR && docker-compose exec -T web python scripts/update_cache.py >> $PROJECT_DIR/logs/cache_update.log 2>&1
+
+# 晚間 19:00 更新
+0 19 * * 1-5 cd $PROJECT_DIR && docker-compose exec -T web python scripts/update_cache.py >> $PROJECT_DIR/logs/cache_update.log 2>&1
+
+# 夜間 21:30 更新
+30 21 * * 1-5 cd $PROJECT_DIR && docker-compose exec -T web python scripts/update_cache.py >> $PROJECT_DIR/logs/cache_update.log 2>&1
+
+# ==============================================================================
+# Log 管理（選用）
+# ==============================================================================
+#
+# 每月 1 號凌晨 2 點清理超過 30 天的舊 log
+# 0 2 1 * * find $PROJECT_DIR/logs -name "*.log" -mtime +30 -delete
+#
+# ==============================================================================
