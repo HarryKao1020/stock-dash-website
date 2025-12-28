@@ -1,5 +1,5 @@
 """
-OAuth 認證模組 - Google & Facebook 登入
+OAuth 認證模組 - Google 登入
 使用 SQLite 儲存用戶資料
 適用於 Dash + Flask 應用程式
 """
@@ -48,10 +48,6 @@ class AuthConfig:
     GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "")
     GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET", "")
 
-    # Facebook OAuth 設定
-    FACEBOOK_CLIENT_ID = os.environ.get("FACEBOOK_CLIENT_ID", "")
-    FACEBOOK_CLIENT_SECRET = os.environ.get("FACEBOOK_CLIENT_SECRET", "")
-
     # 登入後導向的頁面
     LOGIN_REDIRECT_URL = "/"
 
@@ -70,11 +66,11 @@ class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     oauth_id = db.Column(
         db.String(100), unique=True, nullable=False
-    )  # google_xxx 或 facebook_xxx
+    )  # google_xxx
     email = db.Column(db.String(120), nullable=True)
     name = db.Column(db.String(100), nullable=True)
     picture = db.Column(db.String(500), nullable=True)
-    provider = db.Column(db.String(20), nullable=False)  # 'google' 或 'facebook'
+    provider = db.Column(db.String(20), nullable=False)  # 'google'
 
     # 時間戳記
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -185,23 +181,6 @@ def init_auth(app):
         print("✅ Google OAuth 已設定")
     else:
         print("⚠️  Google OAuth 未設定（缺少 GOOGLE_CLIENT_ID 或 GOOGLE_CLIENT_SECRET）")
-
-    # 註冊 Facebook OAuth
-    if AuthConfig.FACEBOOK_CLIENT_ID and AuthConfig.FACEBOOK_CLIENT_SECRET:
-        oauth.register(
-            name="facebook",
-            client_id=AuthConfig.FACEBOOK_CLIENT_ID,
-            client_secret=AuthConfig.FACEBOOK_CLIENT_SECRET,
-            authorize_url="https://www.facebook.com/v18.0/dialog/oauth",
-            access_token_url="https://graph.facebook.com/v18.0/oauth/access_token",
-            api_base_url="https://graph.facebook.com/v18.0/",
-            client_kwargs={"scope": "email public_profile"},
-        )
-        print("✅ Facebook OAuth 已設定")
-    else:
-        print(
-            "⚠️  Facebook OAuth 未設定（缺少 FACEBOOK_CLIENT_ID 或 FACEBOOK_CLIENT_SECRET）"
-        )
 
     # 初始化 Flask-Login
     login_manager.init_app(app)
@@ -430,44 +409,6 @@ def login_page():
                 margin-right: 10px;
             }
 
-            /* Facebook 登录按钮 */
-            .btn-facebook {
-                background: rgba(24, 119, 242, 0.1);
-                border: 1px solid rgba(24, 119, 242, 0.3);
-                color: #5b9df2;
-                padding: 14px 20px;
-                border-radius: 10px;
-                width: 100%;
-                transition: all 0.3s ease;
-                text-decoration: none;
-                font-weight: 500;
-                position: relative;
-                overflow: hidden;
-            }
-
-            .btn-facebook::before {
-                content: '';
-                position: absolute;
-                top: 0;
-                left: -100%;
-                width: 100%;
-                height: 100%;
-                background: linear-gradient(90deg, transparent, rgba(24, 119, 242, 0.2), transparent);
-                transition: left 0.5s;
-            }
-
-            .btn-facebook:hover::before {
-                left: 100%;
-            }
-
-            .btn-facebook:hover {
-                background: rgba(24, 119, 242, 0.2);
-                border-color: rgba(24, 119, 242, 0.5);
-                color: #fff;
-                box-shadow: 0 4px 20px rgba(24, 119, 242, 0.3);
-                transform: translateY(-2px);
-            }
-
             /* 分隔线 */
             hr {
                 border: none;
@@ -503,11 +444,6 @@ def login_page():
                     <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
                 </svg>
                 使用 Google 帳號登入
-            </a>
-
-            <a href="/auth/facebook" class="btn btn-facebook d-flex align-items-center justify-content-center">
-                <i class="fab fa-facebook-f me-2"></i>
-                使用 Facebook 帳號登入
             </a>
 
             <hr class="my-4">
@@ -604,45 +540,6 @@ def google_callback():
 
     except Exception as e:
         print(f"❌ Google 登入失敗: {e}")
-        return f"登入失敗: {str(e)}", 400
-
-
-@auth_bp.route("/facebook")
-def facebook_login():
-    """Facebook 登入"""
-    if "facebook" not in oauth._clients:
-        return "Facebook OAuth 未設定", 400
-
-    redirect_uri = url_for("auth.facebook_callback", _external=True)
-    return oauth.facebook.authorize_redirect(redirect_uri)
-
-
-@auth_bp.route("/facebook/callback")
-def facebook_callback():
-    """Facebook 登入回調"""
-    try:
-        token = oauth.facebook.authorize_access_token()
-        resp = oauth.facebook.get("me?fields=id,name,email,picture")
-        user_info = resp.json()
-
-        if user_info:
-            picture_url = user_info.get("picture", {}).get("data", {}).get("url")
-
-            user = User.get_or_create(
-                oauth_id=f"facebook_{user_info['id']}",
-                email=user_info.get("email"),
-                name=user_info.get("name"),
-                picture=picture_url,
-                provider="facebook",
-            )
-            login_user(user)
-            print(f"✅ Facebook 登入成功: {user.email}")
-            return redirect(AuthConfig.LOGIN_REDIRECT_URL)
-
-        return "無法取得用戶資訊", 400
-
-    except Exception as e:
-        print(f"❌ Facebook 登入失敗: {e}")
         return f"登入失敗: {str(e)}", 400
 
 

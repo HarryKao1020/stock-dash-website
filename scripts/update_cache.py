@@ -25,7 +25,7 @@ from datetime import datetime
 PROJECT_DIR = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_DIR))
 
-from data.finlab_data import FinLabData
+from data.finlab_data import finlab_data
 
 def main():
     """執行快取更新"""
@@ -37,8 +37,8 @@ def main():
     print("=" * 70)
 
     try:
-        # 建立 FinLabData 實例（使用 Parquet 格式）
-        finlab = FinLabData(use_parquet=True)
+        # 使用 global singleton（與應用程式共用同一實例）
+        finlab = finlab_data
 
         # 強制刷新所有快取
         print("\n🗑️  清除舊快取...")

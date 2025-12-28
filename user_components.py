@@ -96,7 +96,7 @@ def create_login_required_modal():
             dbc.ModalBody(
                 [
                     html.P("此功能需要登入才能使用。"),
-                    html.P("請使用 Google 或 Facebook 帳號登入。"),
+                    html.P("請使用 Google 帳號登入。"),
                 ]
             ),
             dbc.ModalFooter(

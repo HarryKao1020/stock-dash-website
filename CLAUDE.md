@@ -13,7 +13,7 @@ This is a **Dash-based Taiwan stock market dashboard** that provides real-time m
 - **Data Sources**:
   - FinLab API (historical stock data, company info, financial metrics)
   - Shioaji API (real-time market data for TSE/OTC indices)
-- **Authentication**: OAuth2 (Google & Facebook) with Flask-Login + SQLAlchemy
+- **Authentication**: OAuth2 (Google) with Flask-Login + SQLAlchemy
 - **Deployment**: Docker + Gunicorn
 
 ## Development Commands
@@ -79,8 +79,6 @@ SECRET_KEY=your_shioaji_secret_key
 FLASK_SECRET_KEY=random_secret_key
 GOOGLE_CLIENT_ID=your_google_client_id
 GOOGLE_CLIENT_SECRET=your_google_client_secret
-FACEBOOK_CLIENT_ID=your_facebook_client_id
-FACEBOOK_CLIENT_SECRET=your_facebook_client_secret
 LOGIN_REQUIRED=false  # Set to 'true' to require login
 
 # Optional
@@ -95,7 +93,7 @@ DB_DIR=/app/data  # For Docker deployments
 
 ```
 app.py                    # Main entry point, defines layout with sidebar navigation
-├── auth.py              # OAuth authentication module (Google/Facebook)
+├── auth.py              # OAuth authentication module (Google)
 ├── finlab_data.py       # FinLab data management with Parquet caching & lazy loading
 ├── user_components.py   # User UI components for auth
 ├── pages/               # Multi-page Dash app
@@ -134,7 +132,7 @@ app.py                    # Main entry point, defines layout with sidebar naviga
    - Incremental updates: Only fetches new data since last cached date
 
 4. **Authentication System**:
-   - OAuth2 flow with Google/Facebook providers (authlib)
+   - OAuth2 flow with Google provider (authlib)
    - SQLite database for user storage (`data/users.db`)
    - Flask-Login for session management
    - Optional login requirement controlled by `LOGIN_REQUIRED` env var
@@ -296,13 +294,13 @@ def update_chart(...):
 
 1. **FinLab**: Get token from https://ai.finlab.tw/ (VIP subscription required)
 2. **Shioaji**: Register at https://sinotrade.github.io/
-3. **OAuth** (optional): See `oauth.md` for Google/Facebook OAuth setup
+3. **OAuth** (optional): See `oauth.md` for Google OAuth setup
 
 ## Common Troubleshooting
 
 - **"資料不足"**: FinLab cache may be stale, call `finlab_data.refresh()`
 - **First user loads slowly**: Data is fetched on-demand. Use warmup API (`/api/warmup`) or set up cron to preload data
 - **Shioaji login fails**: Check API credentials in `.env`, ensure Shioaji API is accessible
-- **OAuth redirect errors**: Verify callback URLs match exactly in Google/Facebook console
+- **OAuth redirect errors**: Verify callback URLs match exactly in Google console
 - **Database locked**: SQLite issue, ensure only one process accesses `data/users.db`
 - **Cache directory permission errors**: Ensure app can write to `cache/` directory

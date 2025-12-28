@@ -2,7 +2,7 @@
 
 ## 📋 概述
 
-本指南說明如何在你的 Dash 台股儀表板中整合 Google 和 Facebook OAuth 登入功能。
+本指南說明如何在你的 Dash 台股儀表板中整合 Google OAuth 登入功能。
 
 ---
 
@@ -47,45 +47,6 @@
    - 點選 **Create**
    - 記下 **Client ID** 和 **Client Secret**
 
-### Facebook OAuth 申請
-
-1. **前往 Facebook Developers**
-   - 網址：https://developers.facebook.com/
-
-2. **建立應用程式**
-   - 點選 **My Apps → Create App**
-   - 選擇 **Consumer** 或 **Set up Facebook Login**
-   - App name：`台股儀表板`
-   - App contact email：你的 Email
-   - 點選 **Create App**
-
-3. **設定 Facebook Login**
-   - Dashboard 左側：**Add Products**
-   - 找到 **Facebook Login** → **Set Up**
-   - 選擇 **Web**
-   - Site URL：`https://yourdomain.com`
-
-4. **設定 OAuth 重導向 URI**
-   - 進入 **Facebook Login → Settings**
-   - Valid OAuth Redirect URIs：
-     ```
-     http://localhost:8050/auth/facebook/callback
-     https://yourdomain.com/auth/facebook/callback
-     ```
-   - 點選 **Save Changes**
-
-5. **取得憑證**
-   - 進入 **Settings → Basic**
-   - 記下 **App ID** 和 **App Secret**
-   - 填寫：
-     - App Domains：`yourdomain.com`
-     - Privacy Policy URL：你的隱私權政策頁面
-     - Data Deletion Instructions URL：資料刪除說明頁面
-
-6. **發布應用程式**
-   - 頂部切換 **Development** → **Live**
-   - 需要完成商業驗證才能讓所有用戶使用
-
 ---
 
 ## 🔧 步驟二：安裝套件
@@ -121,10 +82,6 @@ SECRET_KEY=your-super-secret-key-here
 # Google OAuth
 GOOGLE_CLIENT_ID=123456789-xxx.apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=GOCSPX-xxxxxxxxxx
-
-# Facebook OAuth
-FACEBOOK_CLIENT_ID=1234567890
-FACEBOOK_CLIENT_SECRET=abcdefghijklmnop
 
 # 其他設定
 LOGIN_REQUIRED=false
@@ -196,8 +153,6 @@ services:
       # 🆕 OAuth 環境變數
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
-      - FACEBOOK_CLIENT_ID=${FACEBOOK_CLIENT_ID}
-      - FACEBOOK_CLIENT_SECRET=${FACEBOOK_CLIENT_SECRET}
       - LOGIN_REQUIRED=${LOGIN_REQUIRED:-false}
     volumes:
       - ./cache:/app/cache
@@ -235,7 +190,7 @@ auth.py 處理 callback，取得用戶資訊
    ```
 
 2. **使用 HTTPS**（正式環境必須）
-   - Google 和 Facebook 都要求 redirect URI 使用 HTTPS
+   - Google 要求 redirect URI 使用 HTTPS
    - 本地開發可用 `http://localhost`
 
 3. **定期更換 SECRET_KEY**
@@ -255,21 +210,12 @@ auth.py 處理 callback，取得用戶資訊
 
 **原因**：Callback URL 不匹配
 
-**解決**：確認 Google/Facebook 後台設定的 redirect URI 完全一致：
+**解決**：確認 Google 後台設定的 redirect URI 完全一致：
 - 包含 `http://` 或 `https://`
 - 包含正確的 port
 - 路徑完全一致（`/auth/google/callback`）
 
-### 2. Facebook 登入只有測試用戶能用
-
-**原因**：App 還在 Development 模式
-
-**解決**：
-1. 完成隱私權政策設定
-2. 切換到 Live 模式
-3. 如需完整權限，完成 Business Verification
-
-### 3. Session 失效太快
+### 2. Session 失效太快
 
 **原因**：SECRET_KEY 變更或未設定
 
@@ -283,7 +229,6 @@ SECRET_KEY=固定的密鑰不要每次都產生新的
 ## 📚 相關資源
 
 - [Google OAuth 2.0 文件](https://developers.google.com/identity/protocols/oauth2)
-- [Facebook Login 文件](https://developers.facebook.com/docs/facebook-login/)
 - [Authlib 文件](https://docs.authlib.org/)
 - [Flask-Login 文件](https://flask-login.readthedocs.io/)
 
@@ -294,6 +239,5 @@ SECRET_KEY=固定的密鑰不要每次都產生新的
 整合完成後，你的應用程式將有：
 - `/auth/login` - 登入頁面
 - `/auth/google` - Google 登入
-- `/auth/facebook` - Facebook 登入
 - `/auth/logout` - 登出
 - `/auth/user` - 取得當前用戶資訊（API）
