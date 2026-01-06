@@ -54,6 +54,12 @@ class AuthConfig:
     # 是否需要登入才能使用
     LOGIN_REQUIRED = os.environ.get("LOGIN_REQUIRED", "false").lower() == "true"
 
+    # Session 設定
+    PERMANENT_SESSION_LIFETIME = 2592000  # 30天 (秒數)
+    SESSION_COOKIE_SECURE = False  # 設為 True 需要 HTTPS
+    SESSION_COOKIE_HTTPONLY = True  # 防止 XSS 攻擊
+    SESSION_COOKIE_SAMESITE = "Lax"  # CSRF 防護
+
 
 # ============================================
 # 用戶模型（SQLAlchemy）
@@ -154,6 +160,12 @@ def init_auth(app):
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = (
         AuthConfig.SQLALCHEMY_TRACK_MODIFICATIONS
     )
+
+    # Session 設定 - 啟用永久 session
+    app.config["PERMANENT_SESSION_LIFETIME"] = AuthConfig.PERMANENT_SESSION_LIFETIME
+    app.config["SESSION_COOKIE_SECURE"] = AuthConfig.SESSION_COOKIE_SECURE
+    app.config["SESSION_COOKIE_HTTPONLY"] = AuthConfig.SESSION_COOKIE_HTTPONLY
+    app.config["SESSION_COOKIE_SAMESITE"] = AuthConfig.SESSION_COOKIE_SAMESITE
 
     # 確保資料庫目錄存在
     os.makedirs(AuthConfig.DB_DIR, exist_ok=True)
@@ -532,7 +544,10 @@ def google_callback():
                 picture=user_info.get("picture"),
                 provider="google",
             )
-            login_user(user)
+            # 啟用 remember=True 讓 session 持久化
+            login_user(user, remember=True)
+            # 標記 session 為永久性
+            session.permanent = True
             print(f"✅ Google 登入成功: {user.email}")
             return redirect(AuthConfig.LOGIN_REDIRECT_URL)
 
